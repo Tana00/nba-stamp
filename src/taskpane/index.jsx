@@ -1,43 +1,40 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { HashRouter as Router, Route, Routes } from "react-router-dom";
-import SignInPage from "./pages/Signin";
-import VerificationPage from "./pages/Verification";
+import App from "./pages/App";
 import { FluentProvider, webLightTheme } from "@fluentui/react-components";
+import { HashRouter } from "react-router-dom";
 
-/* global document, Office, module, require */
+/* global Office, module, require */
 
 // const title = "NBA Stamp & Seal";
+let isOfficeInitialized = false;
 
 const rootElement = document.getElementById("container");
 const root = rootElement ? createRoot(rootElement) : undefined;
 
+const render = () => {
+  root.render(
+    <HashRouter>
+      <App isOfficeInitialized={isOfficeInitialized} />
+    </HashRouter>
+  );
+};
+
 /* Render application after Office initializes */
 Office.onReady(() => {
-  root?.render(
+  render(
     <FluentProvider theme={webLightTheme}>
-      <Router>
-        <Routes>
-          <Route exact path="/" component={() => <SignInPage />} />
-          <Route path="/verification" component={VerificationPage} />
-        </Routes>
-      </Router>
+      <App isOfficeInitialized={isOfficeInitialized} />
     </FluentProvider>
   );
 });
 
+/* Initial render showing a progress bar */
+render(App);
+
 if (module.hot) {
-  module.hot.accept("./pages/Signin", () => {
-    const NextApp = require("./pages/Signin").default;
-    root?.render(
-      <FluentProvider theme={webLightTheme}>
-        <Router>
-          <Routes>
-            <Route exact path="/" component={() => <NextApp />} />
-            <Route path="/verification" component={VerificationPage} />
-          </Routes>
-        </Router>
-      </FluentProvider>
-    );
+  module.hot.accept("./pages/App", () => {
+    const NextApp = require("./pages/App").default;
+    render(NextApp);
   });
 }

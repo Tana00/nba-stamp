@@ -6,8 +6,8 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="nba-stamp"/>
   <Description DefaultValue="A template to get started."/>
-  <IconUrl DefaultValue="https://localhost:3000/assets/logo-filled2.png"/>
-  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/logo-filled2.png"/>
+  <IconUrl DefaultValue="https://localhost:3000/assets/logo-filled.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/logo-filled.png"/>
   <SupportUrl DefaultValue="https://www.contoso.com/help"/>
   <AppDomains>
     <AppDomain>https://www.contoso.com</AppDomain>

@@ -15,8 +15,9 @@ async function getHttpsOptions() {
 
 module.exports = async (env, options) => {
   const dev = options.mode === "development";
+  console.log(`Webpack mode: ${options.mode}`); // Log the mode
   const config = {
-    devtool: "source-map",
+    devtool: dev ? "inline-source-map" : "source-map",
     entry: {
       polyfill: ["core-js/stable", "regenerator-runtime/runtime"],
       vendor: ["react", "react-dom", "core-js", "@fluentui/react-components", "@fluentui/react-icons"],
@@ -24,6 +25,8 @@ module.exports = async (env, options) => {
       commands: "./src/commands/commands.js",
     },
     output: {
+      path: require("path").resolve(__dirname, "dist"),
+      filename: "[name].bundle.js",
       clean: true,
     },
     resolve: {
@@ -66,11 +69,7 @@ module.exports = async (env, options) => {
             from: "manifest*.xml",
             to: "[name]" + "[ext]",
             transform(content) {
-              if (dev) {
-                return content;
-              } else {
-                return content.toString().replace(new RegExp(urlDev, "g"), urlProd);
-              }
+              return content.toString().replace(new RegExp(urlDev, "g"), urlProd);
             },
           },
         ],
@@ -91,12 +90,15 @@ module.exports = async (env, options) => {
     ],
     devServer: {
       hot: true,
+      liveReload: true,
+      compress: true,
+      watchFiles: ["src/**/*"],
       headers: {
         "Access-Control-Allow-Origin": "*",
       },
       server: {
         type: "https",
-        options: env.WEBPACK_BUILD || options.https !== undefined ? options.https : await getHttpsOptions(),
+        options: await getHttpsOptions(),
       },
       port: process.env.npm_package_config_dev_server_port || 3000,
     },

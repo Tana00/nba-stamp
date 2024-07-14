@@ -1,31 +1,11 @@
 import * as React from "react";
-import PropTypes from "prop-types";
 import { useHistory } from "react-router-dom";
-import { Image, makeStyles } from "@fluentui/react-components";
+import { makeStyles } from "@fluentui/react-components";
 import { ArrowLeft12Filled } from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
   welcome__header: {
-    // backgroundColor: tokens.colorNeutralBackground3,
     paddingLeft: "10px",
-  },
-  header_container: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    paddingBottom: "30px",
-    paddingTop: "10px",
-  },
-  logo: {
-    width: "122px",
-    height: "124px",
-  },
-  message: {
-    fontSize: "16px",
-    fontWeight: 700,
-    color: "#000000",
-    paddingTop: "10px",
-    fontFamily: "'Poppins', sans-serif",
   },
   back_button: {
     display: "flex",
@@ -48,12 +28,35 @@ const useStyles = makeStyles({
     fontWeight: 600,
     color: "#000000",
   },
+  header_container: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    padding: "10px",
+    paddingRight: "15px",
+    textAlign: "left",
+  },
+  title: {
+    fontSize: "16px",
+    fontWeight: 600,
+    color: "#000000",
+    paddingTop: "10px",
+    fontFamily: "'Poppins', sans-serif",
+    margin: 0,
+  },
+  message: {
+    fontSize: "14px",
+    fontWeight: 500,
+    color: "#000000",
+    paddingTop: "10px",
+    fontFamily: "'Poppins', sans-serif",
+    margin: 0,
+  },
 });
 
-const Header = (props) => {
+const AffixHeader = () => {
   const history = useHistory();
 
-  const { logo, message } = props;
   const styles = useStyles();
 
   return (
@@ -65,17 +68,11 @@ const Header = (props) => {
         <p className={styles.back_button_text}>Back</p>
       </div>
       <div className={styles.header_container}>
-        <Image width="90" height="90" src={logo} alt="logo" className={styles.logo} />
-        <h1 className={styles.message}>{message}</h1>
+        <p className={styles.title}>Affix Stamp</p>
+        <p className={styles.message}>Please click on each button below and follow the steps to affix your stamp</p>
       </div>
     </section>
   );
 };
 
-Header.propTypes = {
-  title: PropTypes.string,
-  logo: PropTypes.string,
-  message: PropTypes.string,
-};
-
-export default Header;
+export default AffixHeader;

@@ -1,6 +1,5 @@
 import React, { useRef } from "react";
 import PropTypes from "prop-types";
-import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 
 const useStyles = makeStyles({
@@ -34,14 +33,9 @@ const useStyles = makeStyles({
 });
 
 const PinVerification = (props) => {
-  const { pin, setPin } = props;
+  const { pin, setPin, handlePinComplete } = props;
   const classes = useStyles();
-  const history = useHistory();
   const inputRefs = useRef([]);
-
-  const handlePinComplete = () => {
-    history.push("/loader");
-  };
 
   const handleChange = (e, index) => {
     const { value } = e.target;
@@ -90,6 +84,7 @@ const PinVerification = (props) => {
 PinVerification.propTypes = {
   pin: PropTypes.array,
   setPin: PropTypes.func,
+  handlePinComplete: PropTypes.any,
 };
 
 export default PinVerification;

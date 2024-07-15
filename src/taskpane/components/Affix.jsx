@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 // import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
 import AffixLayout from "./layout/affixLayout";
 import { PopupModal } from "./shared/PopupModal";
-import { insertImageBottomRightFromLocalPath } from "../taskpane";
+import { insertImageBottomRightFromLocalPath, saveDocumentAsPdf } from "../taskpane";
 import PinVerification from "./PinVerification";
 import Spinner from "./shared/Spinner";
 
@@ -140,7 +140,7 @@ const useStyles = makeStyles({
     },
   },
   confirmContent: {
-    width: "450px",
+    width: "400px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -165,6 +165,7 @@ const useStyles = makeStyles({
       },
     },
     "& .buttons": {
+      width: "100%",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -325,10 +326,24 @@ const AffixSteps = () => {
   const [positionStyle, setPositionStyle] = useState("default");
   const [pin, setPin] = useState(new Array(6).fill(""));
   const [loading, setLoading] = useState(false);
+  const [confirmationStep, setConfirmationStep] = useState(1);
 
-  //   const handleStampInsertion = async () => {
-  //     await insertImageBottomRightFromLocalPath("../../assets/gray-stamp.png");
-  //   };
+  const handleStampInsertion = async () => {
+    await insertImageBottomRightFromLocalPath("../../assets/gray-stamp.png");
+  };
+
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(async () => {
+        setLoading(false);
+        setConfirmationStep(3);
+        await saveDocumentAsPdf();
+      }, 3000);
+
+      // Clear the timeout if the component unmounts or loading changes
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   return (
     <>
@@ -338,15 +353,16 @@ const AffixSteps = () => {
             <div key={step?.id} className={styles.step_container}>
               <div
                 onClick={() => {
-                  showConfirmationPopup();
-                  //   handleStampInsertion();
-                  //   if (step.id === 1) {
-                  //     showStep1Popup();
-                  //   }
-                  //   if (step.id === 2 && active === 2) {
-                  //     setOpenDropdown(!openDropdown);
-                  //     handleStampInsertion();
-                  //   }
+                  if (step.id === 1) {
+                    showStep1Popup();
+                  }
+                  if (step.id === 2 && active === 2) {
+                    setOpenDropdown(!openDropdown);
+                    handleStampInsertion();
+                  }
+                  if (step.id === 3 && active === 2) {
+                    showConfirmationPopup();
+                  }
                 }}
                 className={`${active === step?.id ? styles.activeStep : active > step?.id ? styles.completedStep : ""} ${styles.step}`}
               >
@@ -470,44 +486,68 @@ const AffixSteps = () => {
                 <Spinner />
               ) : (
                 <>
-                  {/* <p className="title">
-                    Are you sure you want to affix your stamp at the allocated positions?{" "}
-                    <span>Please note that this cannot be undone?</span>
-                  </p> */}
-                  {/* Step 1 */}
-                  {/* <div className="buttons">
-                <button className="cancel_btn" onClick={hideConfirmationPopup}>
-                  Cancel
-                </button>
-                <button className="proceed_btn">Proceed</button>
-              </div> */}
+                  {confirmationStep === 1 && (
+                    <>
+                      <p className="title">
+                        Are you sure you want to affix your stamp at the allocated positions?{" "}
+                        <span>Please note that this cannot be undone?</span>
+                      </p>
+                      {/* Step 1 */}
+                      <div className="buttons">
+                        <button className="cancel_btn" onClick={hideConfirmationPopup}>
+                          Cancel
+                        </button>
+                        <button className="proceed_btn" onClick={() => setConfirmationStep(2)}>
+                          Proceed
+                        </button>
+                      </div>
+                    </>
+                  )}
 
                   {/* Step 2 */}
-                  {/* <div className={styles.passcode}>
-                    <p>Input your passcode </p>
-                    <PinVerification setPin={setPin} pin={pin} />
-                  </div> */}
+                  {confirmationStep === 2 && (
+                    <>
+                      <p className="title">
+                        Are you sure you want to affix your stamp at the allocated positions?{" "}
+                        <span>Please note that this cannot be undone?</span>
+                      </p>
+                      <div className={styles.passcode}>
+                        <p>Input your passcode </p>
+                        <PinVerification
+                          setPin={setPin}
+                          pin={pin}
+                          handlePinComplete={() => {
+                            setLoading(true);
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
 
                   {/* Success */}
-                  {/* <div className={styles.success}>
-                    <img src="../../assets/success-check.png" alt="success check" />
-                    <p>Stamp Affixed successfully!</p>
-                    <p>You currently have 49 stamps left</p>
-                    <div>
-                      <button>View Stamped Document in PDF</button>
-                      <button>Preview Stamped Document</button>
+                  {confirmationStep === 3 && (
+                    <div className={styles.success}>
+                      <img src="../../assets/success-check.png" alt="success check" />
+                      <p>Stamp Affixed successfully!</p>
+                      <p>You currently have 49 stamps left</p>
+                      <div>
+                        <button>View Stamped Document in PDF</button>
+                        <button>Preview Stamped Document</button>
+                      </div>
                     </div>
-                  </div> */}
+                  )}
 
                   {/* No Stamps */}
-                  <div className={styles.no_stamps}>
-                    <img src="../../assets/failed.png" alt="success check" />
-                    <p>Ooops!</p>
-                    <p>
-                      You do not have any available stamp. Please click on the “Buy Stamp” button to purchase new
-                      stamps.{" "}
-                    </p>
-                  </div>
+                  {confirmationStep === 4 && (
+                    <div className={styles.no_stamps}>
+                      <img src="../../assets/failed.png" alt="success check" />
+                      <p>Ooops!</p>
+                      <p>
+                        You do not have any available stamp. Please click on the “Buy Stamp” button to purchase new
+                        stamps.{" "}
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
             </div>

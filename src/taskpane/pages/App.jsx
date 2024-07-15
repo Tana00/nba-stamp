@@ -1,7 +1,7 @@
 import * as React from "react";
 import PropTypes from "prop-types";
 import { Switch, Route } from "react-router-dom";
-// import SignInPage from "./Signin";
+import SignInPage from "./Signin";
 import VerificationPage from "./Verification";
 import LoaderPage from "./Loader";
 import DashboardPage from "./Dashboard";
@@ -11,8 +11,8 @@ function App() {
   return (
     <Switch>
       <Route exact path="/">
-        <DashboardPage />
-        {/* <SignInPage /> */}
+        {/* <DashboardPage /> */}
+        <SignInPage />
       </Route>
       <Route exact path="/verification">
         <VerificationPage />

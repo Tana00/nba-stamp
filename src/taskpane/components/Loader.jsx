@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import AuthLayout from "./layout/authLayout";
@@ -24,13 +24,22 @@ const Loader = () => {
   const history = useHistory();
   const styles = useStyles();
 
-  const authenticated = true;
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     if (authenticated) history.push("/dashboard");
   }, [authenticated]);
 
-  //   console.log("authenticated", history.);
+  useEffect(() => {
+    if (!authenticated) {
+      const timer = setTimeout(async () => {
+        setAuthenticated(true);
+      }, 3000);
+
+      // Clear the timeout if the component unmounts or loading changes
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   return (
     <AuthLayout>

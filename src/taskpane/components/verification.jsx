@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-// import { useHistory } from "react-router-dom";
+import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import PinVerification from "./PinVerification";
 import AuthLayout from "./layout/authLayout";
@@ -34,7 +34,7 @@ const useStyles = makeStyles({
 });
 
 const Verification = () => {
-  //   const history = useHistory();
+  const history = useHistory();
   const styles = useStyles();
 
   const [pin, setPin] = useState(new Array(6).fill(""));
@@ -60,6 +60,10 @@ const Verification = () => {
     setTimer(60);
   };
 
+  const handlePinComplete = () => {
+    history.push("/loader");
+  };
+
   return (
     <AuthLayout>
       <div>
@@ -69,7 +73,7 @@ const Verification = () => {
         </p>
         <div className={styles.pin_wrapper}>
           <div className={styles.pin_container}>
-            <PinVerification setPin={setPin} pin={pin} />
+            <PinVerification setPin={setPin} pin={pin} handlePinComplete={handlePinComplete} />
           </div>
           {timer > 0 ? (
             <p className={styles.resend_link}>Resend Code in {timer}s</p>

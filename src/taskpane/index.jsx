@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./pages/App";
 import { FluentProvider, webLightTheme } from "@fluentui/react-components";
 import { HashRouter } from "react-router-dom";
+import { AppContainer } from "react-hot-loader";
 
 /* global Office, module, require */
 
@@ -23,9 +24,11 @@ const render = () => {
 /* Render application after Office initializes */
 Office.onReady(() => {
   render(
-    <FluentProvider theme={webLightTheme}>
-      <App isOfficeInitialized={isOfficeInitialized} />
-    </FluentProvider>
+    <AppContainer>
+      <FluentProvider theme={webLightTheme}>
+        <App isOfficeInitialized={isOfficeInitialized} />
+      </FluentProvider>
+    </AppContainer>
   );
 });
 

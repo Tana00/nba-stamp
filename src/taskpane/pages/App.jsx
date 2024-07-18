@@ -11,8 +11,7 @@ function App() {
   return (
     <Switch>
       <Route exact path="/">
-        {/* <DashboardPage /> */}
-        <SignInPage />
+        <AffixStampPage />
       </Route>
       <Route exact path="/verification">
         <VerificationPage />

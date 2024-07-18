@@ -1,4 +1,5 @@
-/* global Word */
+/* global Word Office */
+
 import { getImageBase64FromLocalPath } from "./helpers/imageToBase64";
 
 export async function insertText(text) {
@@ -19,69 +20,100 @@ export async function insertImageBottomRightFromLocalPath(imagePath) {
     const imageBase64 = await getImageBase64FromLocalPath(imagePath);
 
     await Word.run(async (context) => {
-      // let body = context.document.body;
+      let body = context.document.body;
 
       // Get the current selection
       const selection = context.document.getSelection();
 
       // Insert the image at the end of the document
-      const image = selection.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
-      // body.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
+      selection.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
+      const image = body.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
       await context.sync();
 
-      // Position the image at the bottom right
-      image.float = {
-        horizontalAlignment: Word.HorizontalAlignment.right,
-        verticalAlignment: Word.VerticalAlignment.bottom,
-      };
+      const sections = context.document.sections;
+      context.load(sections, "body/style");
       await context.sync();
+
+      sections.items.forEach((section) => {
+        const footer = section.getFooter("primary");
+        const paragraph = footer.insertParagraph("", Word.InsertLocation.end);
+        paragraph.alignment = Word.Alignment.right;
+
+        const image = paragraph.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.replace);
+      });
+
+      await context.sync();
+
+      // // Convert the inline picture to a floating picture
+      // const floatingImage = image.toFloatingPicture();
+
+      // // Resize the image (e.g., width: 100, height: 100)
+      // floatingImage.width = 10;
+      // floatingImage.height = 10;
+
+      // // Position the floating picture at the bottom right of the page with padding
+      // const paddingRight = 20; // adjust padding as needed
+      // const paddingBottom = 200; // adjust padding as needed
+
+      // floatingImage.floatHorizontalPosition = {
+      //   horizontalAlignment: Word.HorizontalAlignment.right,
+      //   relativeHorizontalPosition: Word.RelativeHorizontalPosition.page,
+      //   marginLeft: paddingRight,
+      // };
+      // floatingImage.floatVerticalPosition = {
+      //   verticalAlignment: Word.VerticalAlignment.bottom,
+      //   relativeVerticalPosition: Word.RelativeVerticalPosition.page,
+      //   marginTop: paddingBottom,
+      // };
+      // floatingImage.left = context.document.body.paragraphs.getFirst().left - paddingRight;
+      // floatingImage.top = context.document.body.paragraphs.getLast().top - floatingImage.height - paddingBottom;
+      await context.sync();
+      await downloadAsPDF2();
     });
   } catch (error) {
     console.log("Error: " + error);
   }
 }
 
-export const saveDocumentAsPdf = async () => {
+async function downloadAsPDF2() {
   try {
-    await Word.run(async (context) => {
-      console.log(Word, context);
-      const pdfFile = await context.document.saveAs("sample.pdf", Word.SaveBehavior.save);
+    Office.context.document.getFileAsync(Office.FileType.Pdf, { sliceSize: 4194304 /* 4MB */ }, (result) => {
+      if (result.status == Office.AsyncResultStatus.Succeeded) {
+        const file = result.value;
+        const sliceCount = file.sliceCount;
+        let slicesReceived = 0;
+        let docdataSlices = [];
 
-      console.log("Document saved as PDF:", pdfFile.value, Word.SaveAsFileType);
+        const getSlice = (index) => {
+          file.getSliceAsync(index, (sliceResult) => {
+            if (sliceResult.status == Office.AsyncResultStatus.Succeeded) {
+              docdataSlices[index] = sliceResult.value.data;
+              slicesReceived++;
+
+              if (slicesReceived === sliceCount) {
+                const docdata = new Uint8Array(docdataSlices.reduce((acc, slice) => acc.concat(Array.from(slice)), []));
+                const blob = new Blob([docdata], { type: "application/pdf" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "document.pdf";
+                a.click();
+                URL.revokeObjectURL(url);
+              } else {
+                getSlice(index + 1);
+              }
+            } else {
+              console.error(`Failed to get slice ${index}: ${sliceResult.error.message}`);
+            }
+          });
+        };
+
+        getSlice(0);
+      } else {
+        console.error(`Failed to get file: ${result.error.message}`);
+      }
     });
   } catch (error) {
-    console.log("Error saving as PDF: " + error);
+    console.error(`Error while downloading as PDF: ${error.message}`);
   }
-};
-
-// export const insertStampImage = async (imagePath) => {
-//   try {
-//     const imageBase64 = await getImageBase64FromLocalPath(imagePath);
-//     await Word.run(async (context) => {
-//       const sections = context.document.sections;
-//       sections.load("items");
-//       await context.sync();
-
-//       console.log("sections", sections.items);
-
-//       sections.items.forEach(async (section) => {
-//         const footer = section.getFooter(Word.HeaderFooterType.primary);
-//         const paragraphs = footer.body.paragraphs;
-//         paragraphs.load("items");
-
-//         await context.sync();
-
-//         return context.sync().then(async () => {
-//           const paragraph = paragraphs.items[0];
-//           paragraph.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
-//           paragraph.alignment = Word.Alignment.right;
-//           paragraph.font.set({ bold: true, size: 10 });
-
-//           await context.sync();
-//         });
-//       });
-//     });
-//   } catch (error) {
-//     console.log("Error: " + error);
-//   }
-// };
+}

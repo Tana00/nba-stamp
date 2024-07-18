@@ -4,7 +4,7 @@ import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
 import AffixLayout from "./layout/affixLayout";
 import { PopupModal } from "./shared/PopupModal";
-import { insertImageBottomRightFromLocalPath, saveDocumentAsPdf } from "../taskpane";
+import { insertImageBottomRightFromLocalPath } from "../taskpane";
 import PinVerification from "./PinVerification";
 import Spinner from "./shared/Spinner";
 
@@ -354,7 +354,8 @@ const AffixSteps = () => {
               <div
                 onClick={() => {
                   if (step.id === 1) {
-                    showStep1Popup();
+                    // showStep1Popup();
+                    handleStampInsertion();
                   }
                   if (step.id === 2 && active === 2) {
                     setOpenDropdown(!openDropdown);

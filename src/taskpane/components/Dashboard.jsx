@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
+import { getDashboardData } from "../api";
 
 const useStyles = makeStyles({
   "@global": {
@@ -89,6 +90,31 @@ const Dashboard = () => {
   const history = useHistory();
   const styles = useStyles();
 
+  const [dashboardData, setDashboardData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getDashboardData();
+        setDashboardData(data?.data);
+      } catch (error) {
+        setError("Failed to fetch dashboard data");
+        history.goBack();
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
+  if (!dashboardData) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className={styles.root}>
       <div className={styles.box}>
@@ -102,7 +128,7 @@ const Dashboard = () => {
               <div className={styles.inner_box}>
                 <div>
                   <img src="../../../assets/stampWallet.png" alt="stamps" className={styles.image} />
-                  <p className="stamp_count">0 Stamps</p>
+                  <p className="stamp_count">{dashboardData?.totalNoOfStampPurchased} Stamps</p>
                 </div>
                 <div className={styles.button_wrapper}>
                   <button className={styles.button} onClick={() => history.push("buy-stamp")}>

@@ -15,19 +15,20 @@ export async function insertText(text) {
   }
 }
 
-export async function insertImageBottomRightFromLocalPath(imagePath) {
+export async function insertImageBottomRightFromLocalPath(imagePath, footerImagePath) {
   try {
     const imageBase64 = await getImageBase64FromLocalPath(imagePath);
+    const footerImageBase64 = await getImageBase64FromLocalPath(footerImagePath);
 
     await Word.run(async (context) => {
-      let body = context.document.body;
+      // let body = context.document.body;
 
       // Get the current selection
       const selection = context.document.getSelection();
 
       // Insert the image at the end of the document
       selection.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
-      const image = body.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
+      // const image = body.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
       await context.sync();
 
       const sections = context.document.sections;
@@ -39,43 +40,19 @@ export async function insertImageBottomRightFromLocalPath(imagePath) {
         const paragraph = footer.insertParagraph("", Word.InsertLocation.end);
         paragraph.alignment = Word.Alignment.right;
 
-        const image = paragraph.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.replace);
+        const image = paragraph.insertInlinePictureFromBase64(footerImageBase64, Word.InsertLocation.replace);
       });
 
       await context.sync();
 
-      // // Convert the inline picture to a floating picture
-      // const floatingImage = image.toFloatingPicture();
-
-      // // Resize the image (e.g., width: 100, height: 100)
-      // floatingImage.width = 10;
-      // floatingImage.height = 10;
-
-      // // Position the floating picture at the bottom right of the page with padding
-      // const paddingRight = 20; // adjust padding as needed
-      // const paddingBottom = 200; // adjust padding as needed
-
-      // floatingImage.floatHorizontalPosition = {
-      //   horizontalAlignment: Word.HorizontalAlignment.right,
-      //   relativeHorizontalPosition: Word.RelativeHorizontalPosition.page,
-      //   marginLeft: paddingRight,
-      // };
-      // floatingImage.floatVerticalPosition = {
-      //   verticalAlignment: Word.VerticalAlignment.bottom,
-      //   relativeVerticalPosition: Word.RelativeVerticalPosition.page,
-      //   marginTop: paddingBottom,
-      // };
-      // floatingImage.left = context.document.body.paragraphs.getFirst().left - paddingRight;
-      // floatingImage.top = context.document.body.paragraphs.getLast().top - floatingImage.height - paddingBottom;
       await context.sync();
-      await downloadAsPDF2();
     });
   } catch (error) {
     console.log("Error: " + error);
   }
 }
 
-async function downloadAsPDF2() {
+export async function downloadAsPDF() {
   try {
     Office.context.document.getFileAsync(Office.FileType.Pdf, { sliceSize: 4194304 /* 4MB */ }, (result) => {
       if (result.status == Office.AsyncResultStatus.Succeeded) {

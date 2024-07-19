@@ -32,13 +32,15 @@
     "@fluentui/react-components": "^9.47.2",
     "@fluentui/react-hooks": "^8.8.10",
     "@fluentui/react-icons": "^2.0.233",
+    "axios": "^1.7.2",
     "core-js": "^3.36.0",
     "es6-promise": "^4.2.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-loader": "^4.13.1",
     "react-router-dom": "^5.0.1",
-    "regenerator-runtime": "^0.14.1"
+    "regenerator-runtime": "^0.14.1",
+    "zustand": "^4.5.4"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

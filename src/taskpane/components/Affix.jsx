@@ -4,7 +4,7 @@ import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
 import AffixLayout from "./layout/affixLayout";
 import { PopupModal } from "./shared/PopupModal";
-import { insertImageBottomRightFromLocalPath } from "../taskpane";
+import { insertImageBottomRightFromLocalPath, downloadAsPDF } from "../taskpane";
 import PinVerification from "./PinVerification";
 import Spinner from "./shared/Spinner";
 
@@ -329,7 +329,7 @@ const AffixSteps = () => {
   const [confirmationStep, setConfirmationStep] = useState(1);
 
   const handleStampInsertion = async () => {
-    await insertImageBottomRightFromLocalPath("../../assets/gray-stamp.png");
+    await insertImageBottomRightFromLocalPath("../../assets/gray-stamp.png", "../../assets/footer-stamp.png");
   };
 
   useEffect(() => {
@@ -337,7 +337,8 @@ const AffixSteps = () => {
       const timer = setTimeout(async () => {
         setLoading(false);
         setConfirmationStep(3);
-        await saveDocumentAsPdf();
+
+        await downloadAsPDF();
       }, 3000);
 
       // Clear the timeout if the component unmounts or loading changes
@@ -354,8 +355,7 @@ const AffixSteps = () => {
               <div
                 onClick={() => {
                   if (step.id === 1) {
-                    // showStep1Popup();
-                    handleStampInsertion();
+                    showStep1Popup();
                   }
                   if (step.id === 2 && active === 2) {
                     setOpenDropdown(!openDropdown);

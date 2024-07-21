@@ -10,6 +10,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const { accessToken } = useAuthStore.getState();
+
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -23,10 +24,10 @@ api.interceptors.request.use(
 export const login = async (enrolmentNo, passcode) => {
   try {
     const response = await api.post("/Account/authenticate", { enrolmentNo, passcode });
-    const { token } = response.data.data;
+    const { data } = response.data;
     // Save the access token in Zustand store
-    const { setAccessToken } = useAuthStore.getState();
-    setAccessToken(token);
+    const { setLoginData } = useAuthStore.getState();
+    setLoginData(data);
 
     return response.data;
   } catch (error) {

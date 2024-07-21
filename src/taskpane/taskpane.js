@@ -1,6 +1,12 @@
 /* global Word Office */
+import { useAuthStore } from "./store";
 
 import { getImageBase64FromLocalPath } from "./helpers/imageToBase64";
+
+const placeholderImagePath = "../../assets/gray-stamp.png";
+const placeholderFooterImagePath = "../../assets/footer-gray-stamp.png";
+const originalImagePath = "../../assets/original-stamp.png";
+const originalFooterImagePath = "../../assets/footer-stamp.png";
 
 export async function insertText(text) {
   // Write text to the document.
@@ -15,10 +21,10 @@ export async function insertText(text) {
   }
 }
 
-export async function insertImageBottomRightFromLocalPath(imagePath, footerImagePath) {
+export async function insertImageBottomRightFromLocalPath() {
   try {
-    const imageBase64 = await getImageBase64FromLocalPath(imagePath);
-    const footerImageBase64 = await getImageBase64FromLocalPath(footerImagePath);
+    const imageBase64 = await getImageBase64FromLocalPath(placeholderImagePath);
+    const footerImageBase64 = await getImageBase64FromLocalPath(placeholderFooterImagePath);
 
     await Word.run(async (context) => {
       // let body = context.document.body;
@@ -27,9 +33,9 @@ export async function insertImageBottomRightFromLocalPath(imagePath, footerImage
       const selection = context.document.getSelection();
 
       // Insert the image at the end of the document
-      selection.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
-      // const image = body.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
+      const inlinePic = selection.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.end);
       await context.sync();
+      inlinePic.altTextTitle = "placeholder";
 
       const sections = context.document.sections;
       context.load(sections, "body/style");
@@ -40,9 +46,15 @@ export async function insertImageBottomRightFromLocalPath(imagePath, footerImage
         const paragraph = footer.insertParagraph("", Word.InsertLocation.end);
         paragraph.alignment = Word.Alignment.right;
 
-        const image = paragraph.insertInlinePictureFromBase64(footerImageBase64, Word.InsertLocation.replace);
+        const footerImg = paragraph.insertInlinePictureFromBase64(footerImageBase64, Word.InsertLocation.replace);
+        footerImg.altTextTitle = "footer-placeholder";
+        footerImg.width = 40;
+        footerImg.height = 40;
+        console.log(sections);
+        const text = paragraph.insertText("Page 1 of 5", Word.InsertLocation.start);
+        text.font.size = 12;
+        text.font.name = "Arial";
       });
-
       await context.sync();
 
       await context.sync();
@@ -52,45 +64,206 @@ export async function insertImageBottomRightFromLocalPath(imagePath, footerImage
   }
 }
 
-export async function downloadAsPDF() {
+export async function downloadAsPDF(documentName) {
+  const { setDownloadStatus } = useAuthStore.getState();
   try {
-    Office.context.document.getFileAsync(Office.FileType.Pdf, { sliceSize: 4194304 /* 4MB */ }, (result) => {
-      if (result.status == Office.AsyncResultStatus.Succeeded) {
-        const file = result.value;
-        const sliceCount = file.sliceCount;
-        let slicesReceived = 0;
-        let docdataSlices = [];
+    await Word.run(async (context) => {
+      await replacePlaceholdersWithOriginals();
+      context.sync();
 
-        const getSlice = (index) => {
-          file.getSliceAsync(index, (sliceResult) => {
-            if (sliceResult.status == Office.AsyncResultStatus.Succeeded) {
-              docdataSlices[index] = sliceResult.value.data;
-              slicesReceived++;
+      return new Promise((resolve, reject) => {
+        Office.context.document.getFileAsync(Office.FileType.Pdf, { sliceSize: 4194304 /* 4MB */ }, (result) => {
+          if (result.status == Office.AsyncResultStatus.Succeeded) {
+            const file = result.value;
+            const sliceCount = file.sliceCount;
+            let slicesReceived = 0;
+            let docdataSlices = [];
 
-              if (slicesReceived === sliceCount) {
-                const docdata = new Uint8Array(docdataSlices.reduce((acc, slice) => acc.concat(Array.from(slice)), []));
-                const blob = new Blob([docdata], { type: "application/pdf" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "document.pdf";
-                a.click();
-                URL.revokeObjectURL(url);
-              } else {
-                getSlice(index + 1);
-              }
-            } else {
-              console.error(`Failed to get slice ${index}: ${sliceResult.error.message}`);
-            }
-          });
-        };
+            const getSlice = (index) => {
+              file.getSliceAsync(index, (sliceResult) => {
+                if (sliceResult.status == Office.AsyncResultStatus.Succeeded) {
+                  docdataSlices[index] = sliceResult.value.data;
+                  slicesReceived++;
 
-        getSlice(0);
-      } else {
-        console.error(`Failed to get file: ${result.error.message}`);
-      }
+                  if (slicesReceived === sliceCount) {
+                    const docdata = new Uint8Array(
+                      docdataSlices.reduce((acc, slice) => acc.concat(Array.from(slice)), [])
+                    );
+                    const blob = new Blob([docdata], { type: "application/pdf" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${documentName}.pdf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    resolve(url);
+                  } else {
+                    getSlice(index + 1);
+                  }
+                } else {
+                  console.error(`Failed to get slice ${index}: ${sliceResult.error.message}`);
+                  reject(`Failed to get slice ${index}: ${sliceResult.error.message}`);
+                }
+              });
+            };
+
+            getSlice(0);
+            setDownloadStatus(true);
+            replaceOriginalsWithPlaceholders();
+          } else {
+            reject(`Failed to get file: ${result.error.message}`);
+            console.error(`Failed to get file: ${result.error.message}`);
+            setDownloadStatus(false);
+            replaceOriginalsWithPlaceholders();
+          }
+        });
+      });
     });
   } catch (error) {
-    console.error(`Error while downloading as PDF: ${error.message}`);
+    console.error(`Error while downloading as PDF: ${error}`);
+    setDownloadStatus(false);
+  }
+}
+
+export async function replacePlaceholdersWithOriginals() {
+  try {
+    const originalImageBase64 = await getImageBase64FromLocalPath(originalImagePath);
+    const originalFooterImageBase64 = await getImageBase64FromLocalPath(originalFooterImagePath);
+
+    await Word.run(async (context) => {
+      // Load all inline pictures in the document
+      const body = context.document.body;
+      context.load(body, "inlinePictures");
+      await context.sync(); // Sync to get all inline pictures
+
+      // Check if the body contains inline pictures
+      const inlinePictures = body.inlinePictures;
+      context.load(inlinePictures, "items");
+      await context.sync(); // Sync to get all pictures
+
+      if (!inlinePictures.items || inlinePictures.items.length === 0) {
+        console.log("No inline pictures found.");
+        return;
+      }
+
+      // Replace placeholder images in the document
+      for (const picture of inlinePictures.items) {
+        if (picture.altTextTitle === "placeholder") {
+          // Example condition
+          picture.insertInlinePictureFromBase64(originalImageBase64, Word.InsertLocation.replace);
+          picture.altTextTitle = "original"; // Update altText to distinguish it
+          picture.width = 80;
+          picture.height = 80;
+        }
+      }
+
+      // // Load all sections in the document
+      const sections = context.document.sections;
+      context.load(sections, "items");
+      await context.sync(); // Sync to get all sections
+
+      // Process footers in all sections
+      for (const section of sections.items) {
+        const footer = section.getFooter("primary");
+        context.load(footer, "paragraphs");
+        await context.sync(); // Sync to get all footers
+
+        const paragraphs = footer.paragraphs;
+        context.load(paragraphs, "items");
+        await context.sync(); // Sync to get all paragraphs
+
+        for (const paragraph of paragraphs.items) {
+          const paragraphPictures = paragraph.inlinePictures;
+          context.load(paragraphPictures, "items");
+          await context.sync(); // Sync to get all inline pictures in the paragraph
+
+          for (const picture of paragraphPictures.items) {
+            if (picture.altTextTitle === "footer-placeholder") {
+              // Example condition
+              picture.insertInlinePictureFromBase64(originalFooterImageBase64, Word.InsertLocation.replace);
+              picture.altTextTitle = "footer-original"; // Update altText to distinguish it
+            }
+          }
+        }
+      }
+
+      // Perform final sync to apply all changes
+      await context.sync();
+    });
+  } catch (error) {
+    console.error("Error replacing placeholders with original images: " + error.message);
+    throw error;
+  }
+}
+
+export async function replaceOriginalsWithPlaceholders() {
+  try {
+    const imageBase64 = await getImageBase64FromLocalPath(placeholderImagePath);
+    const footerImageBase64 = await getImageBase64FromLocalPath(placeholderFooterImagePath);
+
+    await Word.run(async (context) => {
+      // Load all inline pictures in the document
+      const body = context.document.body;
+      context.load(body, "inlinePictures");
+      await context.sync(); // Sync to get all inline pictures
+
+      // Check if the body contains inline pictures
+      const inlinePictures = body.inlinePictures;
+      context.load(inlinePictures, "items");
+      await context.sync(); // Sync to get all pictures
+
+      if (!inlinePictures.items || inlinePictures.items.length === 0) {
+        console.log("No inline pictures found.");
+        return;
+      }
+
+      // Replace placeholder images in the document
+      for (const picture of inlinePictures.items) {
+        if (picture.altTextTitle === "original") {
+          picture.insertInlinePictureFromBase64(imageBase64, Word.InsertLocation.replace);
+          picture.altTextTitle = "placeholder"; // Update altText to distinguish it
+          picture.width = 80;
+          picture.height = 80;
+        }
+      }
+
+      // // Load all sections in the document
+      const sections = context.document.sections;
+      context.load(sections, "items");
+      await context.sync(); // Sync to get all sections
+
+      // Process footers in all sections
+      for (const section of sections.items) {
+        const footer = section.getFooter("primary");
+        context.load(footer, "paragraphs");
+        await context.sync(); // Sync to get all footers
+
+        const paragraphs = footer.paragraphs;
+        context.load(paragraphs, "items");
+        await context.sync(); // Sync to get all paragraphs
+
+        for (const paragraph of paragraphs.items) {
+          const paragraphPictures = paragraph.inlinePictures;
+          context.load(paragraphPictures, "items");
+          await context.sync(); // Sync to get all inline pictures in the paragraph
+
+          for (const picture of paragraphPictures.items) {
+            if (picture.altTextTitle === "footer-original") {
+              // Example condition
+              picture.insertInlinePictureFromBase64(footerImageBase64, Word.InsertLocation.replace);
+              picture.altTextTitle = "footer-placeholder"; // Update altText to distinguish it
+              picture.width = 40;
+              picture.height = 40;
+            }
+          }
+        }
+      }
+
+      // Perform final sync to apply all changes
+      await context.sync();
+    });
+  } catch (error) {
+    console.error("Error replacing originals with placeholders images: " + error.message);
+    throw error;
   }
 }

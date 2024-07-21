@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-// import { useHistory } from "react-router-dom";
+import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
 import AffixLayout from "./layout/affixLayout";
@@ -7,6 +7,7 @@ import { PopupModal } from "./shared/PopupModal";
 import { insertImageBottomRightFromLocalPath, downloadAsPDF } from "../taskpane";
 import PinVerification from "./PinVerification";
 import Spinner from "./shared/Spinner";
+import { useAuthStore } from "../store";
 
 const steps = [
   {
@@ -313,23 +314,33 @@ const useStyles = makeStyles({
 });
 
 const AffixSteps = () => {
-  //   const history = useHistory();
-  const [active, setActive] = useState(1);
+  const history = useHistory();
   const styles = useStyles();
 
-  const [isPopupVisible, { setTrue: showStep1Popup, setFalse: hideStep1Popup }] = useBoolean(false);
-  const [isConfirmationPopup, { setTrue: showConfirmationPopup, setFalse: hideConfirmationPopup }] = useBoolean(false);
-
+  const [active, setActive] = useState(1);
+  const [fileUrl, setFileUrl] = useState(null);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
-  const [openDropdown, setOpenDropdown] = useState(false);
-  const [positionStyle, setPositionStyle] = useState("default");
+  // const [openDropdown, setOpenDropdown] = useState(false);
+  // const [positionStyle, setPositionStyle] = useState("default");
   const [pin, setPin] = useState(new Array(6).fill(""));
   const [loading, setLoading] = useState(false);
   const [confirmationStep, setConfirmationStep] = useState(1);
 
+  const downloadStatus = useAuthStore((state) => state.downloadStatus);
+  const setDownloadStatus = useAuthStore((state) => state.setDownloadStatus);
+
+  const [isPopupVisible, { setTrue: showStep1Popup, setFalse: hideStep1Popup }] = useBoolean(false);
+  const [isConfirmationPopup, { setTrue: showConfirmationPopup, setFalse: hideConfirmationPopup }] = useBoolean(false);
+
   const handleStampInsertion = async () => {
-    await insertImageBottomRightFromLocalPath("../../assets/gray-stamp.png", "../../assets/footer-stamp.png");
+    await insertImageBottomRightFromLocalPath();
+  };
+
+  const handleOpenFile = () => {
+    if (fileUrl) {
+      window.open(fileUrl, "_blank");
+    }
   };
 
   useEffect(() => {
@@ -338,13 +349,28 @@ const AffixSteps = () => {
         setLoading(false);
         setConfirmationStep(3);
 
-        await downloadAsPDF();
+        const url = await downloadAsPDF(title);
+        setFileUrl(url);
       }, 3000);
 
       // Clear the timeout if the component unmounts or loading changes
       return () => clearTimeout(timer);
     }
   }, [loading]);
+
+  useEffect(() => {
+    if (downloadStatus !== null) {
+      if (downloadStatus) {
+        setConfirmationStep(3);
+      } else {
+        setConfirmationStep(4);
+      }
+    }
+  }, [downloadStatus]);
+
+  useEffect(() => {
+    return () => setDownloadStatus(null);
+  }, []);
 
   return (
     <>
@@ -353,15 +379,17 @@ const AffixSteps = () => {
           {steps?.map((step) => (
             <div key={step?.id} className={styles.step_container}>
               <div
-                onClick={() => {
+                onClick={async () => {
                   if (step.id === 1) {
                     showStep1Popup();
+                    setActive(2);
                   }
                   if (step.id === 2 && active === 2) {
-                    setOpenDropdown(!openDropdown);
+                    // setOpenDropdown(!openDropdown);
                     handleStampInsertion();
+                    setActive(3);
                   }
-                  if (step.id === 3 && active === 2) {
+                  if (step.id === 3 && active === 3) {
                     showConfirmationPopup();
                   }
                 }}
@@ -376,7 +404,7 @@ const AffixSteps = () => {
                     <img src="../../../assets/green-check.png" alt="checked sign" className="check_sign" />
                   </div>
                 )}
-                {active >= 2 && step.id === 2 && (
+                {/* {active >= 2 && step.id === 2 && (
                   <div>
                     {openDropdown ? (
                       <svg width="17" height="10" viewBox="0 0 17 10" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -398,9 +426,9 @@ const AffixSteps = () => {
                       </svg>
                     )}
                   </div>
-                )}
+                )} */}
               </div>
-              {openDropdown && step.id === 2 && (
+              {/* {openDropdown && step.id === 2 && (
                 <div className={styles.dropdown}>
                   <div onClick={() => setPositionStyle("default")}>
                     <p>Position your stamp on all pages by Default</p>
@@ -411,7 +439,7 @@ const AffixSteps = () => {
                     <input type="radio" name="positionStyle" checked={positionStyle === "manual"} />
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
           ))}
         </div>
@@ -466,7 +494,13 @@ const AffixSteps = () => {
 
       {isConfirmationPopup && (
         <PopupModal
-          hidePopup={hideConfirmationPopup}
+          hidePopup={() => {
+            hideConfirmationPopup();
+            if (active === 3 && confirmationStep === 3) {
+              history.push("/dashboard");
+              setDownloadStatus(null);
+            }
+          }}
           content={
             <div className={`${styles.confirmContent} ${styles.content}`}>
               <svg
@@ -476,7 +510,13 @@ const AffixSteps = () => {
                 viewBox="0 0 32 32"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                onClick={hideConfirmationPopup}
+                onClick={() => {
+                  hideConfirmationPopup();
+                  if (active === 3 && confirmationStep >= 3) {
+                    history.push("/dashboard");
+                    setDownloadStatus(null);
+                  }
+                }}
               >
                 <path
                   d="M11.2 21.744L16 16.944L20.8 21.744L21.744 20.8L16.944 16L21.744 11.2L20.8 10.256L16 15.056L11.2 10.256L10.256 11.2L15.056 16L10.256 20.8L11.2 21.744ZM16.004 28C14.3453 28 12.7853 27.6853 11.324 27.056C9.86356 26.4258 8.59289 25.5707 7.512 24.4907C6.43111 23.4107 5.57556 22.1413 4.94533 20.6827C4.31511 19.224 4 17.6644 4 16.004C4 14.3436 4.31511 12.7836 4.94533 11.324C5.57467 9.86356 6.42844 8.59289 7.50667 7.512C8.58489 6.43111 9.85467 5.57556 11.316 4.94533C12.7773 4.31511 14.3373 4 15.996 4C17.6547 4 19.2147 4.31511 20.676 4.94533C22.1364 5.57467 23.4071 6.42889 24.488 7.508C25.5689 8.58711 26.4244 9.85689 27.0547 11.3173C27.6849 12.7778 28 14.3373 28 15.996C28 17.6547 27.6853 19.2147 27.056 20.676C26.4267 22.1373 25.5716 23.408 24.4907 24.488C23.4098 25.568 22.1404 26.4236 20.6827 27.0547C19.2249 27.6858 17.6653 28.0009 16.004 28ZM16 26.6667C18.9778 26.6667 21.5 25.6333 23.5667 23.5667C25.6333 21.5 26.6667 18.9778 26.6667 16C26.6667 13.0222 25.6333 10.5 23.5667 8.43333C21.5 6.36667 18.9778 5.33333 16 5.33333C13.0222 5.33333 10.5 6.36667 8.43333 8.43333C6.36667 10.5 5.33333 13.0222 5.33333 16C5.33333 18.9778 6.36667 21.5 8.43333 23.5667C10.5 25.6333 13.0222 26.6667 16 26.6667Z"
@@ -495,7 +535,14 @@ const AffixSteps = () => {
                       </p>
                       {/* Step 1 */}
                       <div className="buttons">
-                        <button className="cancel_btn" onClick={hideConfirmationPopup}>
+                        <button
+                          className="cancel_btn"
+                          onClick={() => {
+                            // history.goBack();
+                            // setActive(2);
+                            hideConfirmationPopup();
+                          }}
+                        >
                           Cancel
                         </button>
                         <button className="proceed_btn" onClick={() => setConfirmationStep(2)}>
@@ -532,7 +579,7 @@ const AffixSteps = () => {
                       <p>Stamp Affixed successfully!</p>
                       <p>You currently have 49 stamps left</p>
                       <div>
-                        <button>View Stamped Document in PDF</button>
+                        <button onClick={handleOpenFile}>View Stamped Document in PDF</button>
                         <button>Preview Stamped Document</button>
                       </div>
                     </div>

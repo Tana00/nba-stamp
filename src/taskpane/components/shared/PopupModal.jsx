@@ -37,6 +37,6 @@ export const PopupModal = (props) => {
 };
 
 PopupModal.propTypes = {
-  content: PropTypes.array,
+  content: PropTypes.any,
   hidePopup: PropTypes.func,
 };

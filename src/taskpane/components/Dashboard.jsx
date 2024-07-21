@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { getDashboardData } from "../api";
+import Spinner from "./shared/Spinner";
+import { useAuthStore } from "../store";
+// import Stamp from "./Stamp";
 
 const useStyles = makeStyles({
   "@global": {
@@ -13,6 +16,14 @@ const useStyles = makeStyles({
     fontFamily: "'Inter', sans-serif",
     overflowY: "auto",
     overflowX: "hidden",
+  },
+  loader_wrapper: {
+    height: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "auto",
   },
   box: {
     margin: "10px",
@@ -90,8 +101,14 @@ const Dashboard = () => {
   const history = useHistory();
   const styles = useStyles();
 
+  const isTokenExpired = useAuthStore((state) => state.isTokenExpired);
+
   const [dashboardData, setDashboardData] = useState(null);
   const [error, setError] = useState(null);
+  // const [name, setName] = useState("TAIWO EMEKA MUSA");
+  // const [scn, setScn] = useState("000184");
+  // const [number, setNumber] = useState("12345678");
+  // const [validTill, setValidTill] = useState("Mar 2016");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,7 +117,7 @@ const Dashboard = () => {
         setDashboardData(data?.data);
       } catch (error) {
         setError("Failed to fetch dashboard data");
-        history.goBack();
+        // history.push("/");
       }
     };
 
@@ -112,7 +129,15 @@ const Dashboard = () => {
   }
 
   if (!dashboardData) {
-    return <div>Loading...</div>;
+    return (
+      <div className={styles.loader_wrapper}>
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (isTokenExpired()) {
+    history.push("/");
   }
 
   return (
@@ -131,7 +156,10 @@ const Dashboard = () => {
                   <p className="stamp_count">{dashboardData?.totalNoOfStampPurchased} Stamps</p>
                 </div>
                 <div className={styles.button_wrapper}>
-                  <button className={styles.button} onClick={() => history.push("buy-stamp")}>
+                  <button
+                    className={styles.button}
+                    // onClick={() => history.push("buy-stamp")}
+                  >
                     Buy Stamp
                   </button>
                   <button className={styles.button} onClick={() => history.push("affix-stamp")}>
@@ -142,6 +170,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+        {/* <Stamp name={name} scn={scn} number={number} validTill={validTill} /> */}
       </div>
     </div>
   );

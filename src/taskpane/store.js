@@ -8,8 +8,9 @@ export const useAuthStore = create()(
       expiryTime: null,
       availableQty: null,
       downloadStatus: null,
-      setLoginData: ({ token, tokenExpires, availableQty }) =>
-        set({ accessToken: token, expiryTime: tokenExpires, availableQty }),
+      name: null,
+      setLoginData: ({ token, tokenExpires, availableQty, firstName, lastName }) =>
+        set({ accessToken: token, expiryTime: tokenExpires, availableQty, name: `${firstName} ${lastName}` }),
       clearLoginData: () => set({ accessToken: null, expiryTime: null, availableQty: null }),
       isTokenExpired: () => {
         const { expiryTime } = get();

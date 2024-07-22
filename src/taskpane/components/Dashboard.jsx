@@ -102,6 +102,7 @@ const Dashboard = () => {
   const styles = useStyles();
 
   const isTokenExpired = useAuthStore((state) => state.isTokenExpired);
+  const name = useAuthStore((state) => state.name);
 
   const [dashboardData, setDashboardData] = useState(null);
   const [error, setError] = useState(null);
@@ -144,7 +145,7 @@ const Dashboard = () => {
     <div className={styles.root}>
       <div className={styles.box}>
         <div className={styles.container}>
-          <p className={styles.text}>Welcome Back, Taiwo</p>
+          <p className={styles.text}>Welcome Back, {name ?? "Taiwo"}</p>
 
           <div>
             <p className={styles.title}>NBA Stamp & Seal</p>

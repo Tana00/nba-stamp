@@ -46,10 +46,12 @@ export async function insertImageBottomRightFromLocalPath() {
         const paragraph = footer.insertParagraph("", Word.InsertLocation.end);
         paragraph.alignment = Word.Alignment.right;
 
+        // Insert Image
         const footerImg = paragraph.insertInlinePictureFromBase64(footerImageBase64, Word.InsertLocation.replace);
         footerImg.altTextTitle = "footer-placeholder";
         footerImg.width = 40;
         footerImg.height = 40;
+
         console.log(sections);
         const text = paragraph.insertText("Page 1 of 5", Word.InsertLocation.start);
         text.font.size = 12;

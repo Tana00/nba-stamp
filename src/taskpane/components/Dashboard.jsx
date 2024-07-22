@@ -138,7 +138,7 @@ const Dashboard = () => {
   }
 
   if (isTokenExpired()) {
-    history.push("/");
+    history.push("/signin");
   }
 
   return (

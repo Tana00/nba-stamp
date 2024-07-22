@@ -26,6 +26,29 @@ const Loader = () => {
 
   const [authenticated, setAuthenticated] = useState(false);
 
+  // const validateOtp = () => {
+  //   try {
+  //     const payload = {
+  //       name,
+  //       enrolmentNo,
+  //       email,
+  //       officeAddress: address,
+  //       passcode,
+  //       confirmPasscode,
+  //     };
+  //     setIsLoading(true);
+  //     setError(null);
+  //     const res = await register(payload);
+  //     if (res?.succeeded) {
+  //       history.push("/verification");
+  //     }
+  //     setIsLoading(false);
+  //   } catch (err) {
+  //     setError("Failed to log in. Please check your credentials.");
+  //     setIsLoading(false);
+  //   }
+  // }
+
   useEffect(() => {
     if (authenticated) history.push("/dashboard");
   }, [authenticated]);

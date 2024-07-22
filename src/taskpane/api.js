@@ -21,6 +21,32 @@ api.interceptors.request.use(
   }
 );
 
+export const register = async (payload) => {
+  try {
+    const response = await api.post("/Account/create-user", { payload });
+
+    // Save the registered email in Zustand store
+    const { setEmail } = useAuthStore.getState();
+    setEmail(payload.email);
+
+    return response.data;
+  } catch (error) {
+    console.error("Error creating account:", error);
+    throw error;
+  }
+};
+
+export const verifyOTP = async (otp) => {
+  try {
+    const response = await api.get(`/Account/verify-otp/${otp}`);
+
+    return response.data;
+  } catch (error) {
+    console.error("Error verifying:", error);
+    throw error;
+  }
+};
+
 export const login = async (enrolmentNo, passcode) => {
   try {
     const response = await api.post("/Account/authenticate", { enrolmentNo, passcode });

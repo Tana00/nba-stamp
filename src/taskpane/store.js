@@ -9,6 +9,7 @@ export const useAuthStore = create()(
       availableQty: null,
       downloadStatus: null,
       name: null,
+      email: null,
       setLoginData: ({ token, tokenExpires, availableQty, firstName, lastName }) =>
         set({ accessToken: token, expiryTime: tokenExpires, availableQty, name: `${firstName} ${lastName}` }),
       clearLoginData: () => set({ accessToken: null, expiryTime: null, availableQty: null }),
@@ -20,6 +21,7 @@ export const useAuthStore = create()(
         return currentTime >= tokenExpiryTime;
       },
       setDownloadStatus: (status) => set({ downloadStatus: status }),
+      setEmail: (email) => set({ email }),
     }),
     {
       name: "auth-storage",

@@ -181,12 +181,15 @@ const Signin = () => {
             <p className={styles.forgot_password}>Forgot Password?</p>
           </div>
           <div className={styles.button_wrapper}>
-            <button type="submit" className={styles.button} disabled={isLoading}>
+            <button type="submit" className={styles.button} disabled={isLoading || (!enrolmentNo && !passcode)}>
               <span>Sign In to your Account</span>
               {isLoading && <div className={styles.loader}></div>}
             </button>
             <p className={styles.no_account}>
-              Don&apos;t have an account? <span className={styles.sign_up_link}>Sign up</span>
+              Don&apos;t have an account?{" "}
+              <span className={styles.sign_up_link} onClick={() => history.push("/signup")}>
+                Sign up
+              </span>
             </p>
           </div>
         </form>

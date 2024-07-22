@@ -1,6 +1,8 @@
 import * as React from "react";
 import PropTypes from "prop-types";
 import { Switch, Route } from "react-router-dom";
+import SplashScreenPage from "./SplashScreen";
+import SignUpPage from "./Signup";
 import SignInPage from "./Signin";
 import VerificationPage from "./Verification";
 import LoaderPage from "./Loader";
@@ -11,6 +13,12 @@ function App() {
   return (
     <Switch>
       <Route exact path="/">
+        <SplashScreenPage />
+      </Route>
+      <Route exact path="/signup">
+        <SignUpPage />
+      </Route>
+      <Route exact path="/signin">
         <SignInPage />
       </Route>
       <Route exact path="/verification">

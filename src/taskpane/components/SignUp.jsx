@@ -200,9 +200,15 @@ const SignUp = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const step1Filled = name.trim() !== "" && email.trim() !== "" && enrolmentNo.trim() !== "";
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const step1Filled = name.trim() !== "" && isValidEmail(email) && enrolmentNo.trim() !== "";
 
   // Check fields for step 2
+  const isValidPasscode = /^\d{6}$/.test(passcode.trim());
   const step2Filled =
     address.trim() !== "" && passcode.trim() !== "" && confirmPasscode.trim() !== "" && passcode === confirmPasscode;
 
@@ -211,6 +217,10 @@ const SignUp = () => {
     if (activeStep === 1) {
       setActiveStep(2);
     } else if (activeStep === 2) {
+      if (!isValidPasscode) {
+        setError("Passcode must be exactly 6 digits.");
+        return;
+      }
       try {
         const payload = {
           name,
@@ -228,7 +238,8 @@ const SignUp = () => {
         }
         setIsLoading(false);
       } catch (err) {
-        setError("Failed to log in. Please check your credentials.");
+        console.log(err.response.data.message);
+        setError(err?.response?.data?.message || "Failed to create account. Please try again");
         setIsLoading(false);
       }
     }
@@ -241,8 +252,22 @@ const SignUp = () => {
           <div className={styles.header}>
             <h2>Create an account</h2>
             <div className={styles.indicatorWrapper}>
-              <div className={`${activeStep === 1 && styles.activeIndicator} ${styles.indicator}`}></div>
-              <div className={`${activeStep === 2 && styles.activeIndicator} ${styles.indicator}`}></div>
+              <div
+                onClick={() => {
+                  if (activeStep === 2) {
+                    setActiveStep(1);
+                  }
+                }}
+                className={`${activeStep === 1 && styles.activeIndicator} ${styles.indicator}`}
+              ></div>
+              <div
+                onClick={() => {
+                  if (step1Filled) {
+                    setActiveStep(2);
+                  }
+                }}
+                className={`${activeStep === 2 && styles.activeIndicator} ${styles.indicator}`}
+              ></div>
             </div>
             <p>{activeStep} of 2</p>
           </div>

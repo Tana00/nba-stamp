@@ -23,7 +23,7 @@ api.interceptors.request.use(
 
 export const register = async (payload) => {
   try {
-    const response = await api.post("/Account/create-user", { payload });
+    const response = await api.post("/Account/create-user", { ...payload });
 
     // Save the registered email in Zustand store
     const { setEmail } = useAuthStore.getState();
@@ -37,12 +37,18 @@ export const register = async (payload) => {
 };
 
 export const verifyOTP = async (otp) => {
+  const { setIsVerified } = useAuthStore.getState();
   try {
     const response = await api.get(`/Account/verify-otp/${otp}`);
+    const { data } = response.data;
+
+    // Save the response in Zustand store
+    setIsVerified(data);
 
     return response.data;
   } catch (error) {
     console.error("Error verifying:", error);
+    setIsVerified(false);
     throw error;
   }
 };

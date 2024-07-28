@@ -1,10 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
-import AuthLayout from "./layout/authLayout";
+// import AuthLayout from "./layout/authLayout";
 import Spinner from "./shared/Spinner";
+import { useAuthStore } from "../store";
 
 const useStyles = makeStyles({
+  "@global": {
+    "&body": {
+      fontFamily: "'Inter', sans-serif",
+    },
+  },
+  root: {
+    fontFamily: "'Inter', sans-serif",
+    overflowY: "auto",
+    overflowX: "hidden",
+    height: "100vh",
+  },
+  box: {
+    margin: "auto",
+    display: "flex",
+    height: "100%",
+  },
   wrapper: {
     display: "flex",
     flexDirection: "column",
@@ -24,54 +41,48 @@ const Loader = () => {
   const history = useHistory();
   const styles = useStyles();
 
-  const [authenticated, setAuthenticated] = useState(false);
+  const [error, setError] = useState(null);
 
-  // const validateOtp = () => {
-  //   try {
-  //     const payload = {
-  //       name,
-  //       enrolmentNo,
-  //       email,
-  //       officeAddress: address,
-  //       passcode,
-  //       confirmPasscode,
-  //     };
-  //     setIsLoading(true);
-  //     setError(null);
-  //     const res = await register(payload);
-  //     if (res?.succeeded) {
-  //       history.push("/verification");
-  //     }
-  //     setIsLoading(false);
-  //   } catch (err) {
-  //     setError("Failed to log in. Please check your credentials.");
-  //     setIsLoading(false);
-  //   }
-  // }
+  const isVerified = useAuthStore((state) => state.isVerified);
 
   useEffect(() => {
-    if (authenticated) history.push("/dashboard");
-  }, [authenticated]);
-
-  useEffect(() => {
-    if (!authenticated) {
-      const timer = setTimeout(async () => {
-        setAuthenticated(true);
-      }, 3000);
-
-      // Clear the timeout if the component unmounts or loading changes
-      return () => clearTimeout(timer);
+    if (isVerified !== null) {
+      if (isVerified) {
+        history.push("/dashboard");
+      } else {
+        setError(isVerified);
+      }
     }
-  }, []);
+  }, [isVerified]);
+
+  if (error) {
+    return (
+      <div>
+        <p>Unable to verify OTP</p>
+        <button>Resend OTP</button>
+      </div>
+    );
+  }
 
   return (
-    <AuthLayout>
-      <div className={styles.wrapper}>
-        <Spinner />
-        <p className={styles.text}>Analysing...</p>
-      </div>
-    </AuthLayout>
+    <div className={styles.root}>
+      <section className={styles.box}>
+        <div className={styles.wrapper}>
+          <Spinner />
+          <p className={styles.text}>Analysing...</p>
+        </div>
+      </section>
+    </div>
   );
+
+  // return (
+  //   <AuthLayout>
+  //     <div className={styles.wrapper}>
+  //       <Spinner />
+  //       <p className={styles.text}>Analysing...</p>
+  //     </div>
+  //   </AuthLayout>
+  // );
 };
 
 export default Loader;

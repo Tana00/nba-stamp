@@ -141,7 +141,7 @@ const Signin = () => {
       }
       setIsLoading(false);
     } catch (err) {
-      setError("Failed to log in. Please check your credentials.");
+      setError(err?.response?.data?.message || "Failed to log in. Please check your credentials.");
       setIsLoading(false);
     }
   };

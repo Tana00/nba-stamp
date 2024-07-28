@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "webpack --mode production",
+    "build:vercel": "webpack --mode production --skip-cert-install",
     "build:dev": "webpack --mode development",
     "dev-server": "webpack serve --mode development",
     "lint": "office-addin-lint check",
@@ -38,6 +39,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-loader": "^4.13.1",
+    "react-paystack": "^5.0.0",
     "react-router-dom": "^5.0.1",
     "regenerator-runtime": "^0.14.1",
     "zustand": "^4.5.4"

@@ -44,13 +44,13 @@ const PinVerification = (props) => {
       newPin[index] = value;
       setPin(newPin);
 
-      if (value && index < 5) {
+      if (value && index < 6) {
         inputRefs.current[index + 1]?.focus();
       }
 
       // Check if pin entry is complete
       if (index === 5 && newPin.every((digit) => digit !== "")) {
-        handlePinComplete();
+        handlePinComplete(newPin);
       }
     }
   };

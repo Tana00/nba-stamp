@@ -8,6 +8,7 @@ import { insertImageBottomRightFromLocalPath, downloadAsPDF } from "../taskpane"
 import PinVerification from "./PinVerification";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
+import { CustomDatePicker } from "./DatePicker";
 
 const steps = [
   {
@@ -108,6 +109,7 @@ const useStyles = makeStyles({
     borderRadius: "10px",
     backgroundColor: "#fff",
     padding: "15px 25px",
+    width: "400px",
     "& .close_icon": {
       display: "flex",
       alignItems: "center",
@@ -202,6 +204,8 @@ const useStyles = makeStyles({
     },
   },
   input_wrapper: {
+    display: "flex",
+    flexDirection: "column",
     margin: "1rem 0",
     "& label": {
       fontSize: "14px",
@@ -214,7 +218,7 @@ const useStyles = makeStyles({
       marginTop: ".5rem",
       borderRadius: "5px",
       height: "50px",
-      width: "400px",
+      // width: "100%",
       paddingLeft: "10px",
       fontSize: "14px",
       "::placeholder": {
@@ -470,13 +474,14 @@ const AffixSteps = () => {
               </div>
               <div className={styles.input_wrapper}>
                 <label htmlFor="date">Enter Date</label>
-                <input
+                <CustomDatePicker value={date} setValue={setDate} />
+                {/* <input
                   id="date"
                   type="text"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   placeholder="DD/MM/YYYY"
-                />
+                /> */}
               </div>
               <button
                 onClick={() => {

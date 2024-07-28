@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
+import { useBoolean } from "@fluentui/react-hooks";
+import { usePaystackPayment } from "react-paystack";
 import { getDashboardData } from "../api";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
+import { PopupModal } from "./shared/PopupModal";
 // import Stamp from "./Stamp";
 
 const useStyles = makeStyles({
@@ -34,6 +37,63 @@ const useStyles = makeStyles({
     margin: "6px auto",
     backgroundColor: "transparent",
     padding: "6px 0",
+  },
+  content: {
+    borderRadius: "10px",
+    backgroundColor: "#fff",
+    padding: "15px 25px",
+    "& .close_icon": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      textAlign: "end",
+      marginLeft: "auto",
+      cursor: "pointer",
+    },
+    "& .title": {
+      fontSize: "16px",
+      fontWeight: 600,
+      color: "#000000CC",
+      fontFamily: "'Poppins', sans-serif",
+    },
+    "& button": {
+      fontSize: "14px",
+      fontWeight: 600,
+      fontFamily: "'Poppins', sans-serif",
+      height: "50px",
+      width: "100%",
+      borderRadius: "10px",
+      backgroundColor: "#2E6A36",
+      color: "#fff",
+      border: 0,
+      marginBottom: "1.2rem",
+      cursor: "pointer",
+      ":disabled": {
+        backgroundColor: "#F1F1F1",
+        color: "#AFAFAF",
+      },
+    },
+  },
+  input_wrapper: {
+    margin: "1rem 0",
+    "& label": {
+      fontSize: "14px",
+      fontWeight: 600,
+      color: "#000000CC",
+      fontFamily: "'Poppins', sans-serif",
+    },
+    "& input": {
+      border: "1px solid #00000080",
+      marginTop: ".5rem",
+      borderRadius: "5px",
+      height: "50px",
+      width: "400px",
+      paddingLeft: "10px",
+      fontSize: "14px",
+      "::placeholder": {
+        color: "#00000033",
+      },
+    },
   },
   text: {
     fontSize: "16px",
@@ -94,6 +154,46 @@ const useStyles = makeStyles({
     fontSize: "14px",
     fontWeight: 500,
     color: "#000",
+    ":disabled": {
+      backgroundColor: "#F1F1F1",
+      color: "#AFAFAF",
+    },
+  },
+  forgot_password: {
+    width: "fit-content",
+    fontSize: "12px",
+    fontWeight: 400,
+    color: "#0000004D",
+    fontFamily: "'Poppins', sans-serif",
+    marginLeft: "auto",
+    display: "flex",
+    justifyContent: "end",
+    textAlign: "end",
+    marginTop: "4px",
+  },
+  amount_wrapper: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "6rem auto 10px auto",
+  },
+  total_amount: {
+    fontSize: "14px",
+    fontWeight: 500,
+    color: "#000",
+    fontFamily: "'Poppins', sans-serif",
+    margin: 0,
+  },
+  amount: {
+    fontSize: "24px",
+    fontWeight: 600,
+    color: "#00000033",
+    fontFamily: "'Poppins', sans-serif",
+    margin: 0,
+  },
+  active_amount: {
+    color: "#2E6A36",
   },
 });
 
@@ -103,31 +203,73 @@ const Dashboard = () => {
 
   const isTokenExpired = useAuthStore((state) => state.isTokenExpired);
   const name = useAuthStore((state) => state.name);
+  const email = useAuthStore((state) => state.email);
 
   const [dashboardData, setDashboardData] = useState(null);
   const [error, setError] = useState(null);
+  const [enrolmentNo, setEnrolmentNo] = useState("");
+  const [passcode, setPasscode] = useState("");
+  const [stampCount, setStampCount] = useState("");
+  const [amount, setAmount] = useState(0);
   // const [name, setName] = useState("TAIWO EMEKA MUSA");
   // const [scn, setScn] = useState("000184");
   // const [number, setNumber] = useState("12345678");
   // const [validTill, setValidTill] = useState("Mar 2016");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getDashboardData();
-        setDashboardData(data?.data);
-      } catch (error) {
-        setError("Failed to fetch dashboard data");
-        // history.push("/");
-      }
-    };
+  const fetchData = async () => {
+    try {
+      const data = await getDashboardData();
+      setDashboardData(data?.data);
+    } catch (error) {
+      setError("Failed to fetch dashboard data");
+      // history.push("/");
+    }
+  };
 
+  const [isPopupVisible, { setTrue: showPopup, setFalse: hidePopup }] = useBoolean(false);
+
+  const isDisabled = () => {
+    const numericValue = parseFloat(stampCount);
+    return isNaN(numericValue) || numericValue < 3;
+  };
+
+  const formatCurrency = (amount) => {
+    const formatter = new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    return formatter.format(amount);
+  };
+
+  const config = {
+    reference: new Date().getTime().toString(),
+    email,
+    amount: amount * 100, //Amount is in the country's lowest currency. E.g Kobo, so 20000 kobo = N200
+    publicKey: "pk_test_1c6fbe434850166fdcf836302b85d94fcf4adf0a",
+  };
+
+  const initializePayment = usePaystackPayment(config);
+
+  const onSuccess = (reference) => {
+    console.log(reference);
+    fetchData();
+  };
+
+  const onClose = () => {
+    console.log("closed");
+    setError("Payment was cancelled");
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
+  // if (error) {
+  //   return <div>Error: {error}</div>;
+  // }
 
   if (!dashboardData) {
     return (
@@ -138,42 +280,133 @@ const Dashboard = () => {
   }
 
   if (isTokenExpired()) {
-    history.push("/");
+    history.push("/signin");
   }
 
   return (
-    <div className={styles.root}>
-      <div className={styles.box}>
-        <div className={styles.container}>
-          <p className={styles.text}>Welcome Back, {name ?? "Taiwo"}</p>
-
-          <div>
-            <p className={styles.title}>NBA Stamp & Seal</p>
-            <div className={styles.wrapper}>
-              <p className="text">Stamp and seal Wallet</p>
-              <div className={styles.inner_box}>
-                <div>
-                  <img src="../../../assets/stampWallet.png" alt="stamps" className={styles.image} />
-                  <p className="stamp_count">{dashboardData?.totalNoOfStampPurchased} Stamps</p>
-                </div>
-                <div className={styles.button_wrapper}>
-                  <button
-                    className={styles.button}
-                    // onClick={() => history.push("buy-stamp")}
-                  >
-                    Buy Stamp
-                  </button>
-                  <button className={styles.button} onClick={() => history.push("affix-stamp")}>
-                    Affix Stamp
-                  </button>
+    <>
+      <div className={styles.root}>
+        <div className={styles.box}>
+          <div className={styles.container}>
+            <p className={styles.text}>Welcome Back, {name ?? "Taiwo"}</p>
+            {error && <div>Error: {error}</div>}
+            <div>
+              <p className={styles.title}>NBA Stamp & Seal</p>
+              <div className={styles.wrapper}>
+                <p className="text">Stamp and seal Wallet</p>
+                <div className={styles.inner_box}>
+                  <div>
+                    <img src="../../../assets/stampWallet.png" alt="stamps" className={styles.image} />
+                    <p className="stamp_count">{dashboardData?.totalNoOfStampPurchased} Stamps</p>
+                  </div>
+                  <div className={styles.button_wrapper}>
+                    <button
+                      className={styles.button}
+                      onClick={() => {
+                        showPopup();
+                        // window.open("https://www.google.com", "_blank");
+                      }}
+                    >
+                      Buy Stamp
+                    </button>
+                    <button
+                      className={styles.button}
+                      onClick={() => history.push("affix-stamp")}
+                      // disabled={dashboardData?.totalNoOfStampPurchased === 0}
+                    >
+                      Affix Stamp
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          {/* <Stamp name={name} scn={scn} number={number} validTill={validTill} /> */}
         </div>
-        {/* <Stamp name={name} scn={scn} number={number} validTill={validTill} /> */}
       </div>
-    </div>
+      {isPopupVisible && (
+        <PopupModal
+          hidePopup={hidePopup}
+          content={
+            <div className={styles.content}>
+              <svg
+                className="close_icon"
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                onClick={hidePopup}
+              >
+                <path
+                  d="M11.2 21.744L16 16.944L20.8 21.744L21.744 20.8L16.944 16L21.744 11.2L20.8 10.256L16 15.056L11.2 10.256L10.256 11.2L15.056 16L10.256 20.8L11.2 21.744ZM16.004 28C14.3453 28 12.7853 27.6853 11.324 27.056C9.86356 26.4258 8.59289 25.5707 7.512 24.4907C6.43111 23.4107 5.57556 22.1413 4.94533 20.6827C4.31511 19.224 4 17.6644 4 16.004C4 14.3436 4.31511 12.7836 4.94533 11.324C5.57467 9.86356 6.42844 8.59289 7.50667 7.512C8.58489 6.43111 9.85467 5.57556 11.316 4.94533C12.7773 4.31511 14.3373 4 15.996 4C17.6547 4 19.2147 4.31511 20.676 4.94533C22.1364 5.57467 23.4071 6.42889 24.488 7.508C25.5689 8.58711 26.4244 9.85689 27.0547 11.3173C27.6849 12.7778 28 14.3373 28 15.996C28 17.6547 27.6853 19.2147 27.056 20.676C26.4267 22.1373 25.5716 23.408 24.4907 24.488C23.4098 25.568 22.1404 26.4236 20.6827 27.0547C19.2249 27.6858 17.6653 28.0009 16.004 28ZM16 26.6667C18.9778 26.6667 21.5 25.6333 23.5667 23.5667C25.6333 21.5 26.6667 18.9778 26.6667 16C26.6667 13.0222 25.6333 10.5 23.5667 8.43333C21.5 6.36667 18.9778 5.33333 16 5.33333C13.0222 5.33333 10.5 6.36667 8.43333 8.43333C6.36667 10.5 5.33333 13.0222 5.33333 16C5.33333 18.9778 6.36667 21.5 8.43333 23.5667C10.5 25.6333 13.0222 26.6667 16 26.6667Z"
+                  fill="black"
+                />
+              </svg>
+
+              <div className={styles.input_wrapper}>
+                <label htmlFor="enrolmentNo" className={styles.label}>
+                  Enter enrolment number
+                </label>
+                <input
+                  name="enrolmentNo"
+                  id="enrolmentNo"
+                  type="text"
+                  value={enrolmentNo}
+                  onChange={(e) => setEnrolmentNo(e.target.value)}
+                  className={styles.input}
+                  placeholder="SCN******"
+                />
+              </div>
+              <div className={styles.input_wrapper}>
+                <label htmlFor="stampCount">Enter number of stamp</label>
+                <input
+                  id="stampCount"
+                  type="number"
+                  value={stampCount}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setStampCount(value);
+                    setAmount(value * 1000);
+                  }}
+                  placeholder="50"
+                />
+                <p className={styles.forgot_password}>Minimum of 3 Stamps</p>
+              </div>
+              <div className={styles.input_wrapper}>
+                <label htmlFor="passcode" className={styles.label}>
+                  Enter passcode
+                </label>
+                <input
+                  name="passcode"
+                  id="passcode"
+                  type="password"
+                  value={passcode}
+                  onChange={(e) => setPasscode(e.target.value)}
+                  className={styles.input}
+                  placeholder="********"
+                />
+              </div>
+              <div className={styles.amount_wrapper}>
+                <p className={styles.total_amount}>Total amount</p>
+                <p className={`${styles.amount} ${stampCount > 0 ? styles.active_amount : ""}`}>
+                  {formatCurrency(amount)}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  hidePopup();
+                  initializePayment(onSuccess, onClose);
+                }}
+                disabled={!enrolmentNo || isDisabled() || !passcode}
+              >
+                Continue
+              </button>
+            </div>
+          }
+        />
+      )}
+    </>
   );
 };
 

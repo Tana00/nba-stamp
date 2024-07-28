@@ -52,10 +52,10 @@ export async function insertImageBottomRightFromLocalPath() {
         footerImg.width = 40;
         footerImg.height = 40;
 
-        console.log(sections);
-        const text = paragraph.insertText("Page 1 of 5", Word.InsertLocation.start);
-        text.font.size = 12;
-        text.font.name = "Arial";
+        // console.log(sections);
+        // const text = paragraph.insertText("Stamp 1 of 5", Word.InsertLocation.start);
+        // text.font.size = 12;
+        // text.font.name = "Arial";
       });
       await context.sync();
 

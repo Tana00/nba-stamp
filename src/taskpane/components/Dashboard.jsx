@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
-import { usePaystackPayment } from "react-paystack";
-import { getDashboardData } from "../api";
+// import { usePaystackPayment } from "react-paystack";
+import { getDashboardData, buyStamp } from "../api";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
 import { PopupModal } from "./shared/PopupModal";
@@ -27,6 +27,21 @@ const useStyles = makeStyles({
     alignItems: "center",
     justifyContent: "center",
     margin: "auto",
+  },
+  loader: {
+    marginLeft: "8px",
+    border: "3px solid #e5e7eb",
+    width: "16px",
+    height: "16px",
+    borderRadius: "50%",
+    borderTopColor: "#2E6A36",
+    animationTimingFunction: "linear",
+    animationIterationCount: "infinite",
+    animationDuration: "1s",
+    animationName: {
+      from: { transform: "rotate(360deg)" },
+      to: { transform: "rotate(0deg)" },
+    },
   },
   box: {
     margin: "10px",
@@ -68,6 +83,9 @@ const useStyles = makeStyles({
       border: 0,
       marginBottom: "1.2rem",
       cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
       ":disabled": {
         backgroundColor: "#F1F1F1",
         color: "#AFAFAF",
@@ -195,6 +213,25 @@ const useStyles = makeStyles({
   active_amount: {
     color: "#2E6A36",
   },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    flexWrap: "wrap",
+    "& button": {
+      border: "none",
+      background: "transparent",
+      fontSize: "14px",
+      fontWeight: 500,
+      color: "#FE4141",
+      fontFamily: "'DM Sans', sans-serif",
+      cursor: "pointer",
+      ":hover": {
+        textDecoration: "underline",
+      },
+    },
+  },
 });
 
 const Dashboard = () => {
@@ -202,15 +239,15 @@ const Dashboard = () => {
   const styles = useStyles();
 
   const isTokenExpired = useAuthStore((state) => state.isTokenExpired);
+  const clearLoginData = useAuthStore((state) => state.clearLoginData);
   const name = useAuthStore((state) => state.name);
-  const email = useAuthStore((state) => state.email);
 
   const [dashboardData, setDashboardData] = useState(null);
   const [error, setError] = useState(null);
-  const [enrolmentNo, setEnrolmentNo] = useState("");
-  const [passcode, setPasscode] = useState("");
+  // const [passcode, setPasscode] = useState("");
   const [stampCount, setStampCount] = useState("");
   const [amount, setAmount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   // const [name, setName] = useState("TAIWO EMEKA MUSA");
   // const [scn, setScn] = useState("000184");
   // const [number, setNumber] = useState("12345678");
@@ -220,6 +257,22 @@ const Dashboard = () => {
     try {
       const data = await getDashboardData();
       setDashboardData(data?.data);
+    } catch (error) {
+      setError("Failed to fetch dashboard data");
+      // history.push("/");
+    }
+  };
+
+  const handleBuyStamp = async () => {
+    // window.open("https://checkout.paystack.com/cr3v5uoh5enzulq", "_blank");
+    try {
+      const data = await buyStamp({ quantity: stampCount, amount });
+      console.log(data);
+      if (data) {
+        window.open(data?.data?.authorizationUrl, "_blank");
+        hidePopup();
+        setIsLoading(false);
+      }
     } catch (error) {
       setError("Failed to fetch dashboard data");
       // history.push("/");
@@ -244,32 +297,28 @@ const Dashboard = () => {
     return formatter.format(amount);
   };
 
-  const config = {
-    reference: new Date().getTime().toString(),
-    email,
-    amount: amount * 100, //Amount is in the country's lowest currency. E.g Kobo, so 20000 kobo = N200
-    publicKey: "pk_test_1c6fbe434850166fdcf836302b85d94fcf4adf0a",
-  };
+  // const config = {
+  //   reference: new Date().getTime().toString(),
+  //   email,
+  //   amount: amount * 100,
+  //   publicKey: "pk_test_1c6fbe434850166fdcf836302b85d94fcf4adf0a",
+  // };
 
-  const initializePayment = usePaystackPayment(config);
+  // const initializePayment = usePaystackPayment(config);
 
-  const onSuccess = (reference) => {
-    console.log(reference);
-    fetchData();
-  };
+  // const onSuccess = (reference) => {
+  //   console.log(reference);
+  //   fetchData();
+  // };
 
-  const onClose = () => {
-    console.log("closed");
-    setError("Payment was cancelled");
-  };
+  // const onClose = () => {
+  //   console.log("closed");
+  //   setError("Payment was cancelled");
+  // };
 
   useEffect(() => {
     fetchData();
   }, []);
-
-  // if (error) {
-  //   return <div>Error: {error}</div>;
-  // }
 
   if (!dashboardData) {
     return (
@@ -288,7 +337,18 @@ const Dashboard = () => {
       <div className={styles.root}>
         <div className={styles.box}>
           <div className={styles.container}>
-            <p className={styles.text}>Welcome Back, {name ?? "Taiwo"}</p>
+            <div className={styles.header}>
+              <p className={styles.text}>Welcome Back, {name ?? "Taiwo"}</p>
+
+              <button
+                onClick={() => {
+                  clearLoginData();
+                  history.push("/signin");
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
             {error && <div>Error: {error}</div>}
             <div>
               <p className={styles.title}>NBA Stamp & Seal</p>
@@ -343,21 +403,6 @@ const Dashboard = () => {
                   fill="black"
                 />
               </svg>
-
-              <div className={styles.input_wrapper}>
-                <label htmlFor="enrolmentNo" className={styles.label}>
-                  Enter enrolment number
-                </label>
-                <input
-                  name="enrolmentNo"
-                  id="enrolmentNo"
-                  type="text"
-                  value={enrolmentNo}
-                  onChange={(e) => setEnrolmentNo(e.target.value)}
-                  className={styles.input}
-                  placeholder="SCN******"
-                />
-              </div>
               <div className={styles.input_wrapper}>
                 <label htmlFor="stampCount">Enter number of stamp</label>
                 <input
@@ -373,7 +418,7 @@ const Dashboard = () => {
                 />
                 <p className={styles.forgot_password}>Minimum of 3 Stamps</p>
               </div>
-              <div className={styles.input_wrapper}>
+              {/* <div className={styles.input_wrapper}>
                 <label htmlFor="passcode" className={styles.label}>
                   Enter passcode
                 </label>
@@ -386,7 +431,7 @@ const Dashboard = () => {
                   className={styles.input}
                   placeholder="********"
                 />
-              </div>
+              </div> */}
               <div className={styles.amount_wrapper}>
                 <p className={styles.total_amount}>Total amount</p>
                 <p className={`${styles.amount} ${stampCount > 0 ? styles.active_amount : ""}`}>
@@ -395,12 +440,15 @@ const Dashboard = () => {
               </div>
               <button
                 onClick={() => {
-                  hidePopup();
-                  initializePayment(onSuccess, onClose);
+                  // hidePopup();
+                  // initializePayment(onSuccess, onClose);
+                  handleBuyStamp();
+                  setIsLoading(true);
                 }}
-                disabled={!enrolmentNo || isDisabled() || !passcode}
+                disabled={isDisabled()}
               >
-                Continue
+                <span>Continue</span>
+                {isLoading && <div className={styles.loader}></div>}
               </button>
             </div>
           }

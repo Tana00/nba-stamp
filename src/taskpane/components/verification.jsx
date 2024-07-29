@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles, Image } from "@fluentui/react-components";
 import PinVerification from "./PinVerification";
-import { verifyOTP } from "../api";
+import { verifyOTP, resendOTP } from "../api";
 import { useAuthStore } from "../store";
 
 const useStyles = makeStyles({
@@ -53,12 +53,28 @@ const useStyles = makeStyles({
     fontFamily: "'DM Sans', sans-serif",
     marginLeft: "auto",
     display: "flex",
+    alignItems: "center",
     justifyContent: "end",
     textAlign: "end",
     cursor: "pointer",
     marginTop: 0,
     "&:hover": {
       textDecoration: "underline",
+    },
+  },
+  loader: {
+    marginLeft: "8px",
+    border: "3px solid #e5e7eb",
+    width: "16px",
+    height: "16px",
+    borderRadius: "50%",
+    borderTopColor: "#2E6A36",
+    animationTimingFunction: "linear",
+    animationIterationCount: "infinite",
+    animationDuration: "1s",
+    animationName: {
+      from: { transform: "rotate(360deg)" },
+      to: { transform: "rotate(0deg)" },
     },
   },
 });
@@ -68,9 +84,11 @@ const Verification = () => {
   const styles = useStyles();
 
   const email = useAuthStore((state) => state.email);
+  const enrolmentNo = useAuthStore((state) => state.enrolmentNo);
 
   const [pin, setPin] = useState(new Array(6).fill(""));
   const [timer, setTimer] = useState(60);
+  const [isLoading, setIsLoading] = useState(false);
 
   const timerRef = useRef(null);
 
@@ -88,8 +106,17 @@ const Verification = () => {
   }, [timer]);
 
   const handleRequestNewPin = () => {
-    setPin(new Array(6).fill(""));
-    setTimer(60);
+    setIsLoading(true);
+    try {
+      const res = resendOTP({ enrolmentNo });
+      if (res?.succeeded) {
+        setIsLoading(false);
+        setPin(new Array(6).fill(""));
+        setTimer(60);
+      }
+    } catch (error) {
+      // history.push("/");
+    }
   };
 
   const handlePinComplete = async (completePin) => {
@@ -116,7 +143,7 @@ const Verification = () => {
               <p className={styles.resend_link}>Resend Code in {timer}s</p>
             ) : (
               <p className={styles.resend_link} onClick={handleRequestNewPin}>
-                Resend Code
+                {!isLoading ? "Resend Code" : <div className={styles.loader}></div>}
               </p>
             )}
           </div>

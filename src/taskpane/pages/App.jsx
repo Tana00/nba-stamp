@@ -8,6 +8,7 @@ import VerificationPage from "./Verification";
 import LoaderPage from "./Loader";
 import DashboardPage from "./Dashboard";
 import AffixStampPage from "./AffixStamp";
+import ResetPasscodePage from "./ResetPasscode";
 
 function App() {
   return (
@@ -20,6 +21,9 @@ function App() {
       </Route>
       <Route exact path="/signin">
         <SignInPage />
+      </Route>
+      <Route exact path="/reset-passode">
+        <ResetPasscodePage />
       </Route>
       <Route exact path="/verification">
         <VerificationPage />

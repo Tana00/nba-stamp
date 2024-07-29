@@ -9,6 +9,7 @@ import PinVerification from "./PinVerification";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
 import { CustomDatePicker } from "./DatePicker";
+import { affixStamp, setQRCode } from "../api";
 
 const steps = [
   {
@@ -136,6 +137,9 @@ const useStyles = makeStyles({
       border: 0,
       margin: "1.2rem 0",
       cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
       ":disabled": {
         backgroundColor: "#F1F1F1",
         color: "#AFAFAF",
@@ -315,6 +319,21 @@ const useStyles = makeStyles({
       },
     },
   },
+  loader: {
+    marginLeft: "8px",
+    border: "3px solid #e5e7eb",
+    width: "16px",
+    height: "16px",
+    borderRadius: "50%",
+    borderTopColor: "#2E6A36",
+    animationTimingFunction: "linear",
+    animationIterationCount: "infinite",
+    animationDuration: "1s",
+    animationName: {
+      from: { transform: "rotate(360deg)" },
+      to: { transform: "rotate(0deg)" },
+    },
+  },
 });
 
 const AffixSteps = () => {
@@ -330,12 +349,42 @@ const AffixSteps = () => {
   const [pin, setPin] = useState(new Array(6).fill(""));
   const [loading, setLoading] = useState(false);
   const [confirmationStep, setConfirmationStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
 
   const downloadStatus = useAuthStore((state) => state.downloadStatus);
   const setDownloadStatus = useAuthStore((state) => state.setDownloadStatus);
+  const stampSignature = useAuthStore((state) => state.stampSignature);
 
   const [isPopupVisible, { setTrue: showStep1Popup, setFalse: hideStep1Popup }] = useBoolean(false);
   const [isConfirmationPopup, { setTrue: showConfirmationPopup, setFalse: hideConfirmationPopup }] = useBoolean(false);
+
+  const handleAffixStamp = async () => {
+    try {
+      const res = await affixStamp({ documentTitle: title, documentDate: date });
+      if (res?.succeeded) {
+        setIsLoading(false);
+        hideStep1Popup();
+        setActive(2);
+      }
+    } catch (error) {
+      // history.push("/");
+    }
+  };
+
+  const handleSetQRCode = async (passcode) => {
+    try {
+      const res = await setQRCode({ stampSignature: stampSignature?.stampSignature, passcode });
+      if (res?.succeeded) {
+        setLoading(false);
+        setConfirmationStep(3);
+
+        const url = await downloadAsPDF(title);
+        setFileUrl(url);
+      }
+    } catch (error) {
+      // history.push("/");
+    }
+  };
 
   const handleStampInsertion = async () => {
     await insertImageBottomRightFromLocalPath();
@@ -347,20 +396,20 @@ const AffixSteps = () => {
     }
   };
 
-  useEffect(() => {
-    if (loading) {
-      const timer = setTimeout(async () => {
-        setLoading(false);
-        setConfirmationStep(3);
+  // useEffect(() => {
+  //   if (loading) {
+  //     const timer = setTimeout(async () => {
+  //       setLoading(false);
+  //       setConfirmationStep(3);
 
-        const url = await downloadAsPDF(title);
-        setFileUrl(url);
-      }, 3000);
+  //       const url = await downloadAsPDF(title);
+  //       setFileUrl(url);
+  //     }, 3000);
 
-      // Clear the timeout if the component unmounts or loading changes
-      return () => clearTimeout(timer);
-    }
-  }, [loading]);
+  //     // Clear the timeout if the component unmounts or loading changes
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [loading]);
 
   useEffect(() => {
     if (downloadStatus !== null) {
@@ -485,12 +534,13 @@ const AffixSteps = () => {
               </div>
               <button
                 onClick={() => {
-                  hideStep1Popup();
-                  setActive(2);
+                  handleAffixStamp();
+                  setIsLoading(true);
                 }}
                 disabled={!title || !date}
               >
-                Done
+                <span>Done</span>
+                {isLoading && <div className={styles.loader}></div>}
               </button>
             </div>
           }
@@ -569,8 +619,10 @@ const AffixSteps = () => {
                         <PinVerification
                           setPin={setPin}
                           pin={pin}
-                          handlePinComplete={() => {
+                          handlePinComplete={(completePin) => {
                             setLoading(true);
+                            const passcode = completePin.map((num) => num.toString()).join("");
+                            handleSetQRCode(passcode);
                           }}
                         />
                       </div>

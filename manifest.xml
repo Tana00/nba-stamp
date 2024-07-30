@@ -8,9 +8,9 @@
   <Description DefaultValue="Stamp &amp; Seal"/>
   <IconUrl DefaultValue="https://localhost:3000/assets/logo-filled.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/logo-filled.png"/>
-  <SupportUrl DefaultValue="https://www.contoso.com/help"/>
+  <SupportUrl DefaultValue="https://nba-stamp-n-seal.netlify.app/help"/>
   <AppDomains>
-    <AppDomain>https://www.contoso.com</AppDomain>
+    <AppDomain>https://nba-stamp-n-seal.netlify.app</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Document"/>

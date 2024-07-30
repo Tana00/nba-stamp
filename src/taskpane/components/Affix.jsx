@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import ReactDOMServer from "react-dom/server";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
+import QRCode from "qrcode";
 import AffixLayout from "./layout/affixLayout";
 import { PopupModal } from "./shared/PopupModal";
 import { insertImageBottomRightFromLocalPath, downloadAsPDF } from "../taskpane";
@@ -10,6 +12,9 @@ import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
 import { CustomDatePicker } from "./DatePicker";
 import { affixStamp, setQRCode } from "../api";
+import { getImageBase64FromSvgComponent } from "../helpers/imageToBase64";
+import { dateTimeToEpoch } from "../helpers/dateTimeToEpoch";
+import CreateStamp from "./Stamp";
 
 const steps = [
   {
@@ -144,6 +149,11 @@ const useStyles = makeStyles({
         backgroundColor: "#F1F1F1",
         color: "#AFAFAF",
       },
+    },
+    "& .error": {
+      fontSize: "12px",
+      color: "#FE4141",
+      fontWeight: 500,
     },
   },
   confirmContent: {
@@ -344,29 +354,62 @@ const AffixSteps = () => {
   const [fileUrl, setFileUrl] = useState(null);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
-  // const [openDropdown, setOpenDropdown] = useState(false);
-  // const [positionStyle, setPositionStyle] = useState("default");
   const [pin, setPin] = useState(new Array(6).fill(""));
   const [loading, setLoading] = useState(false);
   const [confirmationStep, setConfirmationStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  // const [qrCodeSvg, setQrCodeSvg] = useState(null);
 
   const downloadStatus = useAuthStore((state) => state.downloadStatus);
   const setDownloadStatus = useAuthStore((state) => state.setDownloadStatus);
   const stampSignature = useAuthStore((state) => state.stampSignature);
+  const setBase64Stamps = useAuthStore((state) => state.setBase64Stamps);
 
   const [isPopupVisible, { setTrue: showStep1Popup, setFalse: hideStep1Popup }] = useBoolean(false);
   const [isConfirmationPopup, { setTrue: showConfirmationPopup, setFalse: hideConfirmationPopup }] = useBoolean(false);
 
-  const handleAffixStamp = async () => {
+  const generateQRCode = async (qrCodeValue, qrCodeSize) => {
     try {
-      const res = await affixStamp({ documentTitle: title, documentDate: date });
+      const qrCodeSVG = await QRCode.toString(qrCodeValue, {
+        type: "svg",
+        width: qrCodeSize,
+      });
+      return qrCodeSVG;
+    } catch (error) {
+      console.error("Failed to generate QR code:", error);
+    }
+  };
+
+  const handleAffixStamp = async () => {
+    setIsLoading(true);
+    try {
+      const res = await affixStamp({ documentTitle: title, documentDate: dateTimeToEpoch(date)?.toString() });
       if (res?.succeeded) {
         setIsLoading(false);
         hideStep1Popup();
         setActive(2);
+        const data = res?.data;
+
+        const qrCode = generateQRCode(data?.stampSignature, 50);
+
+        const stampData = {
+          firstName: data?.firstName,
+          lastName: data?.lastName,
+          number: data?.enrolmentNo,
+          qrCode,
+        };
+        const svgString = "data:image/svg+xml," + escape(ReactDOMServer.renderToStaticMarkup(CreateStamp(stampData)));
+        const base64 = await getImageBase64FromSvgComponent(svgString);
+
+        setBase64Stamps({ main: base64, footer: base64 });
+      } else {
+        setIsLoading(false);
+        setError(res?.message);
       }
     } catch (error) {
+      setIsLoading(false);
+      setError(error?.response?.data?.message || "An error occurred. Please try again");
       // history.push("/");
     }
   };
@@ -438,7 +481,6 @@ const AffixSteps = () => {
                     setActive(2);
                   }
                   if (step.id === 2 && active === 2) {
-                    // setOpenDropdown(!openDropdown);
                     handleStampInsertion();
                     setActive(3);
                   }
@@ -532,16 +574,11 @@ const AffixSteps = () => {
                   placeholder="DD/MM/YYYY"
                 /> */}
               </div>
-              <button
-                onClick={() => {
-                  handleAffixStamp();
-                  setIsLoading(true);
-                }}
-                disabled={!title || !date}
-              >
+              <button onClick={handleAffixStamp} disabled={!title || !date}>
                 <span>Done</span>
                 {isLoading && <div className={styles.loader}></div>}
               </button>
+              {error && <p className="error">{error}</p>}
             </div>
           }
         />

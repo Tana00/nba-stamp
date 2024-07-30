@@ -143,7 +143,7 @@ export const affixStamp = async (payload) => {
 
     // Save the stamp signature in Zustand store
     const { setStampSignature } = useAuthStore.getState();
-    setStampSignature(response.data);
+    setStampSignature(response.data?.data);
 
     return response.data;
   } catch (error) {

@@ -15,3 +15,15 @@ export async function getImageBase64FromLocalPath(imagePath) {
     xhr.send();
   });
 }
+
+export const getImageBase64FromSvgComponent = async (image) => {
+  return new Promise((resolve, reject) => {
+    fetch(image)
+      .then((response) => response.text())
+      .then((svgContent) => {
+        const base64Svg = btoa(svgContent);
+        resolve(base64Svg);
+      })
+      .catch(reject);
+  });
+};

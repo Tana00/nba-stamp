@@ -6,9 +6,14 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const webpack = require("webpack");
 
 const urlDev = "https://localhost:3000/";
-const urlProd = "https://www.contoso.com/"; // CHANGE THIS TO YOUR PRODUCTION DEPLOYMENT LOCATION
+const urlProd = "https://nba-stamp-n-seal.netlify.app/"; // CHANGE THIS TO YOUR PRODUCTION DEPLOYMENT LOCATION
 
 async function getHttpsOptions() {
+  if (process.env.SKIP_CERTS) {
+    // Return default options or skip certs
+    return { ca: "", key: "", cert: "" };
+  }
+
   const httpsOptions = await devCerts.getHttpsServerOptions();
   return { ca: httpsOptions.ca, key: httpsOptions.key, cert: httpsOptions.cert };
 }

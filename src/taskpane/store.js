@@ -13,6 +13,7 @@ const initialState = {
   stampSignature: null,
   enrolmentNo: null,
   forgotPasswordData: null,
+  base64Stamps: null,
   setLoginData: () => {},
   clearLoginData: () => {},
   isTokenExpired: () => true,
@@ -23,6 +24,7 @@ const initialState = {
   setStampSignature: () => {},
   resetStampSignature: () => {},
   setForgotPasswordData: () => {},
+  setBase64Stamps: () => {},
 };
 
 export const useAuthStore = create()(
@@ -46,9 +48,10 @@ export const useAuthStore = create()(
       setStampSignature: (res) => set({ stampSignature: res }),
       resetStampSignature: () => set({ stampSignature: null }),
       setForgotPasswordData: (res) => set({ forgotPasswordData: res }),
+      setBase64Stamps: (res) => set({ base64Stamps: res }),
     }),
     {
-      name: "auth-storage",
+      name: "storage",
       getStorage: () => localStorage,
     }
   )

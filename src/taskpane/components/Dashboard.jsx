@@ -91,6 +91,25 @@ const useStyles = makeStyles({
         color: "#AFAFAF",
       },
     },
+    "& .question": {
+      fontSize: "18px",
+      fontWeight: 500,
+      textAlign: "center",
+      fontFamily: "'Poppins', sans-serif",
+    },
+    "& .cancel_btn": {
+      color: "#FE4141",
+      border: "1px solid #FE4141",
+      borderRadius: "10px",
+      width: "300px",
+      background: "transparent",
+      margin: "2rem",
+      marginBottom: 0,
+    },
+    "& .confirm_btn": {
+      width: "300px",
+      margin: "1.5rem 2rem 2rem 2rem",
+    },
   },
   input_wrapper: {
     margin: "1rem 0",
@@ -194,7 +213,7 @@ const useStyles = makeStyles({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    margin: "6rem auto 10px auto",
+    margin: "4rem auto 10px auto",
   },
   total_amount: {
     fontSize: "14px",
@@ -248,15 +267,22 @@ const Dashboard = () => {
   const [stampCount, setStampCount] = useState("");
   const [amount, setAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  // const [name, setName] = useState("TAIWO EMEKA MUSA");
-  // const [scn, setScn] = useState("000184");
-  // const [number, setNumber] = useState("12345678");
-  // const [validTill, setValidTill] = useState("Mar 2016");
+
+  const [isPopupVisible, { setTrue: showPopup, setFalse: hidePopup }] = useBoolean(false);
+  const [isConfirmPaymentPopup, { setTrue: showConfirmPaymentPopup, setFalse: hideConfirmPaymentPopup }] =
+    useBoolean(false);
+
+  const handleResetFields = () => {
+    setAmount(0);
+    setStampCount("");
+  };
 
   const fetchData = async () => {
     try {
       const data = await getDashboardData();
       setDashboardData(data?.data);
+      hideConfirmPaymentPopup();
+      handleResetFields();
     } catch (error) {
       setError("Failed to fetch dashboard data");
       // history.push("/");
@@ -264,7 +290,6 @@ const Dashboard = () => {
   };
 
   const handleBuyStamp = async () => {
-    // window.open("https://checkout.paystack.com/cr3v5uoh5enzulq", "_blank");
     try {
       const data = await buyStamp({ quantity: stampCount, amount });
       console.log(data);
@@ -272,14 +297,13 @@ const Dashboard = () => {
         window.open(data?.data?.authorizationUrl, "_blank");
         hidePopup();
         setIsLoading(false);
+        showConfirmPaymentPopup();
       }
     } catch (error) {
       setError("Failed to fetch dashboard data");
       // history.push("/");
     }
   };
-
-  const [isPopupVisible, { setTrue: showPopup, setFalse: hidePopup }] = useBoolean(false);
 
   const isDisabled = () => {
     const numericValue = parseFloat(stampCount);
@@ -448,6 +472,36 @@ const Dashboard = () => {
                 disabled={isDisabled()}
               >
                 <span>Continue</span>
+                {isLoading && <div className={styles.loader}></div>}
+              </button>
+            </div>
+          }
+        />
+      )}
+
+      {isConfirmPaymentPopup && (
+        <PopupModal
+          hidePopup={hideConfirmPaymentPopup}
+          content={
+            <div className={styles.content}>
+              <p className="question">Have you successfully made payment?</p>
+              <button
+                onClick={() => {
+                  hideConfirmPaymentPopup();
+                  handleResetFields();
+                }}
+                className="cancel_btn"
+              >
+                <span>No</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  fetchData();
+                }}
+                className="confirm_btn"
+              >
+                <span>Yes</span>
                 {isLoading && <div className={styles.loader}></div>}
               </button>
             </div>

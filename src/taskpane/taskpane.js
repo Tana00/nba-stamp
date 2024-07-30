@@ -4,9 +4,9 @@ import { useAuthStore } from "./store";
 import { getImageBase64FromLocalPath } from "./helpers/imageToBase64";
 
 const placeholderImagePath = "../../assets/gray-stamp.png";
-const placeholderFooterImagePath = "../../assets/footer-gray-stamp.png";
-const originalImagePath = "../../assets/original-stamp.png";
-const originalFooterImagePath = "../../assets/footer-stamp.png";
+const placeholderFooterImagePath = "../../assets/for-gray-stamp.png";
+// const originalImagePath = "../../assets/original-stamp.pngote";
+// const originalFooterImagePath = "../../assets/footer-stamp.png";
 
 export async function insertText(text) {
   // Write text to the document.
@@ -25,6 +25,10 @@ export async function insertImageBottomRightFromLocalPath() {
   try {
     const imageBase64 = await getImageBase64FromLocalPath(placeholderImagePath);
     const footerImageBase64 = await getImageBase64FromLocalPath(placeholderFooterImagePath);
+
+    // const { base64Stamps } = useAuthStore.getState();
+    // const imageBase64 = base64Stamps?.main;
+    // const footerImageBase64 = base64Stamps?.footer;
 
     await Word.run(async (context) => {
       // let body = context.document.body;
@@ -51,11 +55,6 @@ export async function insertImageBottomRightFromLocalPath() {
         footerImg.altTextTitle = "footer-placeholder";
         footerImg.width = 40;
         footerImg.height = 40;
-
-        // console.log(sections);
-        // const text = paragraph.insertText("Stamp 1 of 5", Word.InsertLocation.start);
-        // text.font.size = 12;
-        // text.font.name = "Arial";
       });
       await context.sync();
 
@@ -129,8 +128,12 @@ export async function downloadAsPDF(documentName) {
 
 export async function replacePlaceholdersWithOriginals() {
   try {
-    const originalImageBase64 = await getImageBase64FromLocalPath(originalImagePath);
-    const originalFooterImageBase64 = await getImageBase64FromLocalPath(originalFooterImagePath);
+    const { base64Stamps } = useAuthStore.getState();
+
+    // const originalImageBase64 = await getImageBase64FromLocalPath(originalImagePath);
+    // const originalFooterImageBase64 = await getImageBase64FromLocalPath(originalFooterImagePath);
+    const originalImageBase64 = base64Stamps?.main;
+    const originalFooterImageBase64 = base64Stamps?.footer;
 
     await Word.run(async (context) => {
       // Load all inline pictures in the document

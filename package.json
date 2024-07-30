@@ -12,7 +12,7 @@
     "dev_server_port": 3000
   },
   "scripts": {
-    "build": "SKIP_CERTS=true webpack --mode production",
+    "build": "webpack --mode production --output-path dist",
     "build:dev": "webpack --mode development",
     "dev-server": "webpack serve --mode development",
     "lint": "office-addin-lint check",

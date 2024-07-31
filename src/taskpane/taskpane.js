@@ -4,7 +4,7 @@ import { useAuthStore } from "./store";
 import { getImageBase64FromLocalPath } from "./helpers/imageToBase64";
 
 const placeholderImagePath = "../../assets/gray-stamp.png";
-const placeholderFooterImagePath = "../../assets/for-gray-stamp.png";
+const placeholderFooterImagePath = "../../assets/footer-gray-stamp.png";
 // const originalImagePath = "../../assets/original-stamp.pngote";
 // const originalFooterImagePath = "../../assets/footer-stamp.png";
 
@@ -25,10 +25,6 @@ export async function insertImageBottomRightFromLocalPath() {
   try {
     const imageBase64 = await getImageBase64FromLocalPath(placeholderImagePath);
     const footerImageBase64 = await getImageBase64FromLocalPath(placeholderFooterImagePath);
-
-    // const { base64Stamps } = useAuthStore.getState();
-    // const imageBase64 = base64Stamps?.main;
-    // const footerImageBase64 = base64Stamps?.footer;
 
     await Word.run(async (context) => {
       // let body = context.document.body;
@@ -69,26 +65,26 @@ export async function downloadAsPDF(documentName) {
   const { setDownloadStatus } = useAuthStore.getState();
   try {
     await Word.run(async (context) => {
-      await replacePlaceholdersWithOriginals();
-      context.sync();
+      await replacePlaceholdersWithOriginals(); // Ensure this is complete
+      await context.sync(); // Await context.sync() for completion
 
       return new Promise((resolve, reject) => {
         Office.context.document.getFileAsync(Office.FileType.Pdf, { sliceSize: 4194304 /* 4MB */ }, (result) => {
-          if (result.status == Office.AsyncResultStatus.Succeeded) {
+          if (result.status === Office.AsyncResultStatus.Succeeded) {
             const file = result.value;
             const sliceCount = file.sliceCount;
             let slicesReceived = 0;
-            let docdataSlices = [];
+            const docdataSlices = [];
 
             const getSlice = (index) => {
               file.getSliceAsync(index, (sliceResult) => {
-                if (sliceResult.status == Office.AsyncResultStatus.Succeeded) {
+                if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
                   docdataSlices[index] = sliceResult.value.data;
                   slicesReceived++;
 
                   if (slicesReceived === sliceCount) {
                     const docdata = new Uint8Array(
-                      docdataSlices.reduce((acc, slice) => acc.concat(Array.from(slice)), [])
+                      docdataSlices.flat() // Use .flat() for better handling
                     );
                     const blob = new Blob([docdata], { type: "application/pdf" });
                     const url = URL.createObjectURL(blob);
@@ -110,12 +106,12 @@ export async function downloadAsPDF(documentName) {
 
             getSlice(0);
             setDownloadStatus(true);
-            replaceOriginalsWithPlaceholders();
+            removePlaceholderImages(); // Ensure this is appropriate
           } else {
-            reject(`Failed to get file: ${result.error.message}`);
             console.error(`Failed to get file: ${result.error.message}`);
             setDownloadStatus(false);
-            replaceOriginalsWithPlaceholders();
+            replaceOriginalsWithPlaceholders(); // Ensure this is appropriate
+            reject(`Failed to get file: ${result.error.message}`);
           }
         });
       });
@@ -123,6 +119,7 @@ export async function downloadAsPDF(documentName) {
   } catch (error) {
     console.error(`Error while downloading as PDF: ${error}`);
     setDownloadStatus(false);
+    replaceOriginalsWithPlaceholders(); // Ensure this is appropriate
   }
 }
 
@@ -256,6 +253,77 @@ export async function replaceOriginalsWithPlaceholders() {
             if (picture.altTextTitle === "footer-original") {
               // Example condition
               picture.insertInlinePictureFromBase64(footerImageBase64, Word.InsertLocation.replace);
+              picture.altTextTitle = "footer-placeholder"; // Update altText to distinguish it
+              picture.width = 40;
+              picture.height = 40;
+            }
+          }
+        }
+      }
+
+      // Perform final sync to apply all changes
+      await context.sync();
+    });
+  } catch (error) {
+    console.error("Error replacing originals with placeholders images: " + error.message);
+    throw error;
+  }
+}
+
+export async function removePlaceholderImages() {
+  try {
+    await Word.run(async (context) => {
+      // Load all inline pictures in the document
+      const body = context.document.body;
+      context.load(body, "inlinePictures");
+      await context.sync(); // Sync to get all inline pictures
+
+      // Check if the body contains inline pictures
+      const inlinePictures = body.inlinePictures;
+      context.load(inlinePictures, "items");
+      await context.sync(); // Sync to get all pictures
+
+      if (!inlinePictures.items || inlinePictures.items.length === 0) {
+        console.log("No inline pictures found.");
+        return;
+      }
+
+      // Replace placeholder images in the document
+      for (const picture of inlinePictures.items) {
+        if (picture.altTextTitle === "original") {
+          picture.delete();
+          // .insertInlinePictureFromBase64("", Word.InsertLocation.replace);
+          picture.altTextTitle = "placeholder"; // Update altText to distinguish it
+          picture.width = 80;
+          picture.height = 80;
+        }
+      }
+
+      // // Load all sections in the document
+      const sections = context.document.sections;
+      context.load(sections, "items");
+      await context.sync(); // Sync to get all sections
+
+      // Process footers in all sections
+      for (const section of sections.items) {
+        const footer = section.getFooter("primary");
+        context.load(footer, "paragraphs");
+        await context.sync(); // Sync to get all footers
+
+        const paragraphs = footer.paragraphs;
+        context.load(paragraphs, "items");
+        await context.sync(); // Sync to get all paragraphs
+
+        for (const paragraph of paragraphs.items) {
+          const paragraphPictures = paragraph.inlinePictures;
+          context.load(paragraphPictures, "items");
+          await context.sync(); // Sync to get all inline pictures in the paragraph
+
+          for (const picture of paragraphPictures.items) {
+            if (picture.altTextTitle === "footer-original") {
+              // Example condition
+              picture.delete();
+              // .insertInlinePictureFromBase64("", Word.InsertLocation.replace);
               picture.altTextTitle = "footer-placeholder"; // Update altText to distinguish it
               picture.width = 40;
               picture.height = 40;

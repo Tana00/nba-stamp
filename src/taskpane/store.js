@@ -25,6 +25,7 @@ const initialState = {
   resetStampSignature: () => {},
   setForgotPasswordData: () => {},
   setBase64Stamps: () => {},
+  setAvailableQty: () => {},
 };
 
 export const useAuthStore = create()(
@@ -49,6 +50,7 @@ export const useAuthStore = create()(
       resetStampSignature: () => set({ stampSignature: null }),
       setForgotPasswordData: (res) => set({ forgotPasswordData: res }),
       setBase64Stamps: (res) => set({ base64Stamps: res }),
+      setAvailableQty: (res) => set({ availableQty: res }),
     }),
     {
       name: "storage",

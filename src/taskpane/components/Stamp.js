@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-const CreateStamp = ({ firstName, lastName, number }) => (
+const CreateStamp = ({ firstName, lastName, number, size = 300 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     xmlnsXlink="http://www.w3.org/1999/xlink"
@@ -9,8 +9,8 @@ const CreateStamp = ({ firstName, lastName, number }) => (
     id="Layer_1"
     // x={0}
     // y={0}
-    height="500"
-    width="500"
+    height={size}
+    width={size}
     style={{ enableBackground: "new 0 0 1080 1080" }}
     viewBox="0 0 1080 1080"
   >
@@ -153,6 +153,7 @@ CreateStamp.propTypes = {
   lastName: PropTypes.string,
   number: PropTypes.string,
   qrCode: PropTypes.any,
+  size: PropTypes.number,
 };
 
 export default CreateStamp;

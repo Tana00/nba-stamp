@@ -6,7 +6,7 @@ import { useBoolean } from "@fluentui/react-hooks";
 import QRCode from "qrcode";
 import AffixLayout from "./layout/affixLayout";
 import { PopupModal } from "./shared/PopupModal";
-import { insertImageBottomRightFromLocalPath, downloadAsPDF } from "../taskpane";
+import { insertImageBottomRightFromLocalPath, downloadAsPDF, removePlaceholderImages } from "../taskpane";
 import PinVerification from "./PinVerification";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
@@ -359,12 +359,14 @@ const AffixSteps = () => {
   const [confirmationStep, setConfirmationStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  // const [qrCodeSvg, setQrCodeSvg] = useState(null);
+  const [completePasscode, setCompletePasscode] = useState("");
 
   const downloadStatus = useAuthStore((state) => state.downloadStatus);
   const setDownloadStatus = useAuthStore((state) => state.setDownloadStatus);
   const stampSignature = useAuthStore((state) => state.stampSignature);
+  const availableQty = useAuthStore((state) => state.availableQty);
   const setBase64Stamps = useAuthStore((state) => state.setBase64Stamps);
+  const setStampSignature = useAuthStore((state) => state.setStampSignature);
 
   const [isPopupVisible, { setTrue: showStep1Popup, setFalse: hideStep1Popup }] = useBoolean(false);
   const [isConfirmationPopup, { setTrue: showConfirmationPopup, setFalse: hideConfirmationPopup }] = useBoolean(false);
@@ -399,10 +401,14 @@ const AffixSteps = () => {
           number: data?.enrolmentNo,
           qrCode,
         };
-        const svgString = "data:image/svg+xml," + escape(ReactDOMServer.renderToStaticMarkup(CreateStamp(stampData)));
+        const svgString =
+          "data:image/svg+xml," + escape(ReactDOMServer.renderToStaticMarkup(CreateStamp({ ...stampData, size: 100 })));
+        const footerSvgString =
+          "data:image/svg+xml," + escape(ReactDOMServer.renderToStaticMarkup(CreateStamp({ ...stampData, size: 30 })));
         const base64 = await getImageBase64FromSvgComponent(svgString);
+        const footerBase64 = await getImageBase64FromSvgComponent(footerSvgString);
 
-        setBase64Stamps({ main: base64, footer: base64 });
+        setBase64Stamps({ main: base64, footer: footerBase64 });
       } else {
         setIsLoading(false);
         setError(res?.message);
@@ -420,9 +426,6 @@ const AffixSteps = () => {
       if (res?.succeeded) {
         setLoading(false);
         setConfirmationStep(3);
-
-        const url = await downloadAsPDF(title);
-        setFileUrl(url);
       }
     } catch (error) {
       // history.push("/");
@@ -455,17 +458,30 @@ const AffixSteps = () => {
   // }, [loading]);
 
   useEffect(() => {
-    if (downloadStatus !== null) {
-      if (downloadStatus) {
-        setConfirmationStep(3);
-      } else {
-        setConfirmationStep(4);
+    // Define an async function inside the useEffect
+    const handleAsyncOperation = async () => {
+      if (downloadStatus !== null) {
+        setLoading(false);
+        if (downloadStatus) {
+          handleSetQRCode(completePasscode);
+          await removePlaceholderImages();
+        } else {
+          setConfirmationStep(4);
+          setError("Unable to download. Please try again");
+        }
       }
-    }
+    };
+
+    // Call the async function
+    handleAsyncOperation();
   }, [downloadStatus]);
 
   useEffect(() => {
-    return () => setDownloadStatus(null);
+    return () => {
+      setDownloadStatus(null);
+      setStampSignature(null);
+      setBase64Stamps(null);
+    };
   }, []);
 
   return (
@@ -478,7 +494,9 @@ const AffixSteps = () => {
                 onClick={async () => {
                   if (step.id === 1) {
                     showStep1Popup();
-                    setActive(2);
+                    setDownloadStatus(null);
+                    setConfirmationStep(1);
+                    setError(null);
                   }
                   if (step.id === 2 && active === 2) {
                     handleStampInsertion();
@@ -541,7 +559,10 @@ const AffixSteps = () => {
       </AffixLayout>
       {isPopupVisible && (
         <PopupModal
-          hidePopup={hideStep1Popup}
+          hidePopup={() => {
+            hideStep1Popup();
+            setError(null);
+          }}
           content={
             <div className={styles.content}>
               <svg
@@ -551,7 +572,10 @@ const AffixSteps = () => {
                 viewBox="0 0 32 32"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                onClick={hideStep1Popup}
+                onClick={() => {
+                  hideStep1Popup();
+                  setError(null);
+                }}
               >
                 <path
                   d="M11.2 21.744L16 16.944L20.8 21.744L21.744 20.8L16.944 16L21.744 11.2L20.8 10.256L16 15.056L11.2 10.256L10.256 11.2L15.056 16L10.256 20.8L11.2 21.744ZM16.004 28C14.3453 28 12.7853 27.6853 11.324 27.056C9.86356 26.4258 8.59289 25.5707 7.512 24.4907C6.43111 23.4107 5.57556 22.1413 4.94533 20.6827C4.31511 19.224 4 17.6644 4 16.004C4 14.3436 4.31511 12.7836 4.94533 11.324C5.57467 9.86356 6.42844 8.59289 7.50667 7.512C8.58489 6.43111 9.85467 5.57556 11.316 4.94533C12.7773 4.31511 14.3373 4 15.996 4C17.6547 4 19.2147 4.31511 20.676 4.94533C22.1364 5.57467 23.4071 6.42889 24.488 7.508C25.5689 8.58711 26.4244 9.85689 27.0547 11.3173C27.6849 12.7778 28 14.3373 28 15.996C28 17.6547 27.6853 19.2147 27.056 20.676C26.4267 22.1373 25.5716 23.408 24.4907 24.488C23.4098 25.568 22.1404 26.4236 20.6827 27.0547C19.2249 27.6858 17.6653 28.0009 16.004 28ZM16 26.6667C18.9778 26.6667 21.5 25.6333 23.5667 23.5667C25.6333 21.5 26.6667 18.9778 26.6667 16C26.6667 13.0222 25.6333 10.5 23.5667 8.43333C21.5 6.36667 18.9778 5.33333 16 5.33333C13.0222 5.33333 10.5 6.36667 8.43333 8.43333C6.36667 10.5 5.33333 13.0222 5.33333 16C5.33333 18.9778 6.36667 21.5 8.43333 23.5667C10.5 25.6333 13.0222 26.6667 16 26.6667Z"
@@ -588,9 +612,13 @@ const AffixSteps = () => {
         <PopupModal
           hidePopup={() => {
             hideConfirmationPopup();
+            setDownloadStatus(null);
+            setError(null);
             if (active === 3 && confirmationStep === 3) {
               history.push("/dashboard");
-              setDownloadStatus(null);
+            }
+            if (active === 3 && confirmationStep === 4) {
+              setConfirmationStep(1);
             }
           }}
           content={
@@ -604,9 +632,13 @@ const AffixSteps = () => {
                 xmlns="http://www.w3.org/2000/svg"
                 onClick={() => {
                   hideConfirmationPopup();
-                  if (active === 3 && confirmationStep >= 3) {
+                  setDownloadStatus(null);
+                  setError(null);
+                  if (active === 3 && confirmationStep === 3) {
                     history.push("/dashboard");
-                    setDownloadStatus(null);
+                  }
+                  if (active === 3 && confirmationStep === 4) {
+                    setConfirmationStep(1);
                   }
                 }}
               >
@@ -656,10 +688,15 @@ const AffixSteps = () => {
                         <PinVerification
                           setPin={setPin}
                           pin={pin}
-                          handlePinComplete={(completePin) => {
+                          handlePinComplete={async (completePin) => {
                             setLoading(true);
                             const passcode = completePin.map((num) => num.toString()).join("");
-                            handleSetQRCode(passcode);
+                            setCompletePasscode(passcode);
+
+                            // setConfirmationStep(3);
+                            setPin(new Array(6).fill(""));
+                            const url = await downloadAsPDF(title);
+                            setFileUrl(url);
                           }}
                         />
                       </div>
@@ -671,10 +708,10 @@ const AffixSteps = () => {
                     <div className={styles.success}>
                       <img src="../../assets/success-check.png" alt="success check" />
                       <p>Stamp Affixed successfully!</p>
-                      <p>You currently have 49 stamps left</p>
+                      <p>You currently have {availableQty - 1} stamps left</p>
                       <div>
                         <button onClick={handleOpenFile}>View Stamped Document in PDF</button>
-                        <button>Preview Stamped Document</button>
+                        <button onClick={async () => await removePlaceholderImages()}>Clear</button>
                       </div>
                     </div>
                   )}
@@ -685,8 +722,8 @@ const AffixSteps = () => {
                       <img src="../../assets/failed.png" alt="success check" />
                       <p>Ooops!</p>
                       <p>
-                        You do not have any available stamp. Please click on the “Buy Stamp” button to purchase new
-                        stamps.{" "}
+                        {error ||
+                          "You do not have any available stamp. Please click on the “Buy Stamp” button to purchase new stamps."}
                       </p>
                     </div>
                   )}

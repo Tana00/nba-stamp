@@ -396,7 +396,7 @@ const Dashboard = () => {
                     <button
                       className={styles.button}
                       onClick={() => history.push("affix-stamp")}
-                      // disabled={dashboardData?.totalNoOfStampPurchased === 0}
+                      disabled={dashboardData?.totalNoOfStampPurchased === 0}
                     >
                       Affix Stamp
                     </button>

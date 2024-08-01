@@ -194,6 +194,7 @@ const Signin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [forgotPasswordStep, setForgotPasswordStep] = useState(1);
   const [token, setToken] = useState(0);
+  const [message, setMessage] = useState("");
 
   const [isPopupVisible, { setTrue: showPopup, setFalse: hidePopup }] = useBoolean(false);
 
@@ -219,6 +220,7 @@ const Signin = () => {
       if (res?.succeeded) {
         setIsLoading(false);
         setForgotPasswordStep(2);
+        setMessage(res?.message);
       }
     } catch (error) {
       // history.push("/");
@@ -356,7 +358,7 @@ const Signin = () => {
               {/* Step 2 */}
               {forgotPasswordStep === 2 && (
                 <>
-                  <p className="title">Enter token sent to your email for verification</p>
+                  <p className="title">{message || "Enter token sent to your email for verification"}</p>
                   <div className={styles.input_wrapper}>
                     <label htmlFor="token" className={styles.label}>
                       Enter token

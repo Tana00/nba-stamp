@@ -3,10 +3,15 @@ import ReactDOMServer from "react-dom/server";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
-import QRCode from "qrcode";
 import AffixLayout from "./layout/affixLayout";
 import { PopupModal } from "./shared/PopupModal";
-import { insertImageBottomRightFromLocalPath, downloadAsPDF, removePlaceholderImages } from "../taskpane";
+import {
+  insertImageBottomRightFromLocalPath,
+  // downloadAsPDF,
+  removePlaceholderImages,
+  preparePDFDownload,
+  initiateDownload,
+} from "../taskpane";
 import PinVerification from "./PinVerification";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
@@ -351,7 +356,6 @@ const AffixSteps = () => {
   const styles = useStyles();
 
   const [active, setActive] = useState(1);
-  const [fileUrl, setFileUrl] = useState(null);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [pin, setPin] = useState(new Array(6).fill(""));
@@ -359,56 +363,58 @@ const AffixSteps = () => {
   const [confirmationStep, setConfirmationStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [completePasscode, setCompletePasscode] = useState("");
+  // const [completePasscode, setCompletePasscode] = useState("");
+  const [availableStamp, setAvailableStamp] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
 
   const downloadStatus = useAuthStore((state) => state.downloadStatus);
+  const downloadURL = useAuthStore((state) => state.downloadURL);
   const setDownloadStatus = useAuthStore((state) => state.setDownloadStatus);
   const stampSignature = useAuthStore((state) => state.stampSignature);
-  const availableQty = useAuthStore((state) => state.availableQty);
   const setBase64Stamps = useAuthStore((state) => state.setBase64Stamps);
   const setStampSignature = useAuthStore((state) => state.setStampSignature);
 
   const [isPopupVisible, { setTrue: showStep1Popup, setFalse: hideStep1Popup }] = useBoolean(false);
   const [isConfirmationPopup, { setTrue: showConfirmationPopup, setFalse: hideConfirmationPopup }] = useBoolean(false);
 
-  const generateQRCode = async (qrCodeValue, qrCodeSize) => {
-    try {
-      const qrCodeSVG = await QRCode.toString(qrCodeValue, {
-        type: "svg",
-        width: qrCodeSize,
-      });
-      return qrCodeSVG;
-    } catch (error) {
-      console.error("Failed to generate QR code:", error);
-    }
-  };
-
   const handleAffixStamp = async () => {
     setIsLoading(true);
     try {
-      const res = await affixStamp({ documentTitle: title, documentDate: dateTimeToEpoch(date)?.toString() });
+      const res = await affixStamp({
+        documentTitle: title,
+        documentDate: dateTimeToEpoch(date)?.toString(),
+        noOfPages: pageCount,
+      });
       if (res?.succeeded) {
         setIsLoading(false);
         hideStep1Popup();
         setActive(2);
         const data = res?.data;
 
-        const qrCode = generateQRCode(data?.stampSignature, 50);
+        // const qrCode = generateQRCode("c8a7ffd-9456-43f7-8daf-f80dcaede78c");
 
         const stampData = {
           firstName: data?.firstName,
           lastName: data?.lastName,
           number: data?.enrolmentNo,
-          qrCode,
+          qrCode: data?.stampSignature,
         };
+
+        // const stampData = {
+        //   firstName: "Emefiele",
+        //   lastName: "Happiness Grace",
+        //   number: "GG123456",
+        //   qrCode: "c8a7ffd-9456-43f7-8daf-f80dcaede78c",
+        // };
         const svgString =
-          "data:image/svg+xml," + escape(ReactDOMServer.renderToStaticMarkup(CreateStamp({ ...stampData, size: 100 })));
+          "data:image/svg+xml," + escape(ReactDOMServer.renderToStaticMarkup(CreateStamp({ ...stampData, size: 200 })));
         const footerSvgString =
           "data:image/svg+xml," + escape(ReactDOMServer.renderToStaticMarkup(CreateStamp({ ...stampData, size: 30 })));
         const base64 = await getImageBase64FromSvgComponent(svgString);
         const footerBase64 = await getImageBase64FromSvgComponent(footerSvgString);
 
         setBase64Stamps({ main: base64, footer: footerBase64 });
+        // await handleStampInsertion();
       } else {
         setIsLoading(false);
         setError(res?.message);
@@ -421,54 +427,37 @@ const AffixSteps = () => {
   };
 
   const handleSetQRCode = async (passcode) => {
+    await preparePDFDownload();
     try {
       const res = await setQRCode({ stampSignature: stampSignature?.stampSignature, passcode });
       if (res?.succeeded) {
         setLoading(false);
+        initiateDownload(title);
         setConfirmationStep(3);
+        setAvailableStamp(res?.data?.availableQty);
       }
     } catch (error) {
       // history.push("/");
     }
   };
 
-  const handleStampInsertion = async () => {
-    await insertImageBottomRightFromLocalPath();
+  const handleStampInsertion = async (pageCount) => {
+    await insertImageBottomRightFromLocalPath(pageCount);
   };
 
   const handleOpenFile = () => {
-    if (fileUrl) {
-      window.open(fileUrl, "_blank");
+    if (downloadURL) {
+      window.open(downloadURL, "_blank");
     }
   };
-
-  // useEffect(() => {
-  //   if (loading) {
-  //     const timer = setTimeout(async () => {
-  //       setLoading(false);
-  //       setConfirmationStep(3);
-
-  //       const url = await downloadAsPDF(title);
-  //       setFileUrl(url);
-  //     }, 3000);
-
-  //     // Clear the timeout if the component unmounts or loading changes
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [loading]);
 
   useEffect(() => {
     // Define an async function inside the useEffect
     const handleAsyncOperation = async () => {
-      if (downloadStatus !== null) {
+      if (downloadStatus !== null && downloadStatus === false) {
         setLoading(false);
-        if (downloadStatus) {
-          handleSetQRCode(completePasscode);
-          await removePlaceholderImages();
-        } else {
-          setConfirmationStep(4);
-          setError("Unable to download. Please try again");
-        }
+        setConfirmationStep(4);
+        setError("Unable to download. Please try again");
       }
     };
 
@@ -493,13 +482,14 @@ const AffixSteps = () => {
               <div
                 onClick={async () => {
                   if (step.id === 1) {
+                    // handleAffixStamp();
                     showStep1Popup();
                     setDownloadStatus(null);
                     setConfirmationStep(1);
                     setError(null);
                   }
                   if (step.id === 2 && active === 2) {
-                    handleStampInsertion();
+                    handleStampInsertion(pageCount);
                     setActive(3);
                   }
                   if (step.id === 3 && active === 3) {
@@ -586,6 +576,10 @@ const AffixSteps = () => {
               <div className={styles.input_wrapper}>
                 <label htmlFor="title">Enter Document Title</label>
                 <input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+              </div>
+              <div className={styles.input_wrapper}>
+                <label htmlFor="title">No of Pages</label>
+                <input id="title" type="number" value={pageCount} onChange={(e) => setPageCount(e.target.value)} />
               </div>
               <div className={styles.input_wrapper}>
                 <label htmlFor="date">Enter Date</label>
@@ -691,12 +685,11 @@ const AffixSteps = () => {
                           handlePinComplete={async (completePin) => {
                             setLoading(true);
                             const passcode = completePin.map((num) => num.toString()).join("");
-                            setCompletePasscode(passcode);
+                            // setCompletePasscode(passcode);
 
                             // setConfirmationStep(3);
                             setPin(new Array(6).fill(""));
-                            const url = await downloadAsPDF(title);
-                            setFileUrl(url);
+                            handleSetQRCode(passcode);
                           }}
                         />
                       </div>
@@ -708,10 +701,10 @@ const AffixSteps = () => {
                     <div className={styles.success}>
                       <img src="../../assets/success-check.png" alt="success check" />
                       <p>Stamp Affixed successfully!</p>
-                      <p>You currently have {availableQty - 1} stamps left</p>
+                      <p>You currently have {availableStamp} stamps left</p>
                       <div>
                         <button onClick={handleOpenFile}>View Stamped Document in PDF</button>
-                        <button onClick={async () => await removePlaceholderImages()}>Clear</button>
+                        <button onClick={async () => await removePlaceholderImages()}>Clear Placeholders</button>
                       </div>
                     </div>
                   )}

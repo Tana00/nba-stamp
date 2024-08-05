@@ -112,7 +112,6 @@ export async function downloadAsPDF(documentName) {
 
             getSlice(0);
             setDownloadStatus(true);
-            removePlaceholderImages(); // Ensure this is appropriate
           } else {
             console.error(`Failed to get file: ${result.error.message}`);
             setDownloadStatus(false);
@@ -257,7 +256,6 @@ export async function replaceOriginalsWithPlaceholders() {
 
           for (const picture of paragraphPictures.items) {
             if (picture.altTextTitle === "footer-original") {
-              // Example condition
               picture.insertInlinePictureFromBase64(footerImageBase64, Word.InsertLocation.replace);
               picture.altTextTitle = "footer-placeholder"; // Update altText to distinguish it
               picture.width = 40;
@@ -287,21 +285,22 @@ export async function removePlaceholderImages() {
       // Check if the body contains inline pictures
       const inlinePictures = body.inlinePictures;
       context.load(inlinePictures, "items");
+      console.log(inlinePictures, "items");
       await context.sync(); // Sync to get all pictures
 
       if (!inlinePictures.items || inlinePictures.items.length === 0) {
         console.log("No inline pictures found.");
-        return;
-      }
-
-      // Replace placeholder images in the document
-      for (const picture of inlinePictures.items) {
-        if (picture.altTextTitle === "original") {
-          picture.delete();
-          // .insertInlinePictureFromBase64("", Word.InsertLocation.replace);
-          picture.altTextTitle = "placeholder"; // Update altText to distinguish it
-          picture.width = 80;
-          picture.height = 80;
+        // return;
+      } else {
+        // Replace placeholder images in the document
+        for (const picture of inlinePictures.items) {
+          if (picture.altTextTitle === "original" || picture.altTextTitle === "placeholder") {
+            picture.delete();
+            // .insertInlinePictureFromBase64("", Word.InsertLocation.replace);
+            // picture.altTextTitle = "placeholder";
+            // picture.width = 80;
+            // picture.height = 80;
+          }
         }
       }
 
@@ -326,14 +325,17 @@ export async function removePlaceholderImages() {
           await context.sync(); // Sync to get all inline pictures in the paragraph
 
           for (const picture of paragraphPictures.items) {
-            if (picture.altTextTitle === "footer-original") {
-              // Example condition
+            if (picture.altTextTitle === "footer-original" || picture.altTextTitle === "footer-placeholder") {
               picture.delete();
-              // .insertInlinePictureFromBase64("", Word.InsertLocation.replace);
-              picture.altTextTitle = "footer-placeholder"; // Update altText to distinguish it
-              picture.width = 40;
-              picture.height = 40;
             }
+          }
+          // Check if paragraph contains specific footer text and remove it
+          if (paragraph.text.includes("Stamp")) {
+            paragraph.delete();
+          }
+          // Check if paragraph contains specific footer text and remove it
+          if (paragraph.text.includes("Stamp")) {
+            paragraph.delete();
           }
         }
       }
@@ -342,7 +344,7 @@ export async function removePlaceholderImages() {
       await context.sync();
     });
   } catch (error) {
-    console.error("Error replacing originals with placeholders images: " + error.message);
+    console.error("Error removing placeholders images: " + error.message);
     throw error;
   }
 }
@@ -386,13 +388,12 @@ export const preparePDFDownload = async () => {
 
             getSlice(0);
             setDownloadStatus(true);
-            removePlaceholderImages();
           } else {
             console.error(`Failed to get file: ${result.error.message}`);
             setDownloadStatus(false);
-            replaceOriginalsWithPlaceholders();
             reject(`Failed to get file: ${result.error.message}`);
           }
+          replaceOriginalsWithPlaceholders();
         });
       });
     });
@@ -404,11 +405,12 @@ export const preparePDFDownload = async () => {
   }
 };
 
-export const initiateDownload = (documentName) => {
+export const initiateDownload = async (documentName) => {
   const { downloadURL } = useAuthStore.getState();
   const a = document.createElement("a");
   a.href = downloadURL;
   a.download = `${documentName}.pdf`;
   a.click();
   URL.revokeObjectURL(downloadURL);
+  await removePlaceholderImages();
 };

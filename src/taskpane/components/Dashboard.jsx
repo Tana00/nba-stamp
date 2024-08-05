@@ -2,12 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
-// import { usePaystackPayment } from "react-paystack";
 import { getDashboardData, buyStamp } from "../api";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
 import { PopupModal } from "./shared/PopupModal";
-// import Stamp from "./Stamp";
 
 const useStyles = makeStyles({
   "@global": {
@@ -285,14 +283,12 @@ const Dashboard = () => {
       handleResetFields();
     } catch (error) {
       setError("Failed to fetch dashboard data");
-      // history.push("/");
     }
   };
 
   const handleBuyStamp = async () => {
     try {
       const data = await buyStamp({ quantity: stampCount, amount });
-      console.log(data);
       if (data) {
         window.open(data?.data?.authorizationUrl, "_blank");
         hidePopup();
@@ -301,7 +297,6 @@ const Dashboard = () => {
       }
     } catch (error) {
       setError("Failed to fetch dashboard data");
-      // history.push("/");
     }
   };
 
@@ -320,25 +315,6 @@ const Dashboard = () => {
 
     return formatter.format(amount);
   };
-
-  // const config = {
-  //   reference: new Date().getTime().toString(),
-  //   email,
-  //   amount: amount * 100,
-  //   publicKey: "pk_test_1c6fbe434850166fdcf836302b85d94fcf4adf0a",
-  // };
-
-  // const initializePayment = usePaystackPayment(config);
-
-  // const onSuccess = (reference) => {
-  //   console.log(reference);
-  //   fetchData();
-  // };
-
-  // const onClose = () => {
-  //   console.log("closed");
-  //   setError("Payment was cancelled");
-  // };
 
   useEffect(() => {
     fetchData();
@@ -396,7 +372,7 @@ const Dashboard = () => {
                     <button
                       className={styles.button}
                       onClick={() => history.push("affix-stamp")}
-                      disabled={dashboardData?.totalNoOfStampPurchased === 0}
+                      disabled={dashboardData?.availableQty === 0}
                     >
                       Affix Stamp
                     </button>

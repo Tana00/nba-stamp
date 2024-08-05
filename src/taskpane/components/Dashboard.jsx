@@ -223,12 +223,14 @@ const useStyles = makeStyles({
   amount: {
     fontSize: "24px",
     fontWeight: 600,
-    color: "#00000033",
     fontFamily: "'Poppins', sans-serif",
     margin: 0,
   },
   active_amount: {
     color: "#2E6A36",
+  },
+  inactive_amount: {
+    color: "#00000033",
   },
   header: {
     display: "flex",
@@ -434,7 +436,7 @@ const Dashboard = () => {
               </div> */}
               <div className={styles.amount_wrapper}>
                 <p className={styles.total_amount}>Total amount</p>
-                <p className={`${styles.amount} ${stampCount > 0 ? styles.active_amount : ""}`}>
+                <p className={`${styles.amount} ${stampCount > 0 ? styles.active_amount : styles.inactive_amount}`}>
                   {formatCurrency(amount)}
                 </p>
               </div>

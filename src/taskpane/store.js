@@ -14,6 +14,8 @@ const initialState = {
   enrolmentNo: null,
   forgotPasswordData: null,
   base64Stamps: null,
+  noOfPages: 1,
+  downloadURL: null,
   setLoginData: () => {},
   clearLoginData: () => {},
   isTokenExpired: () => true,
@@ -26,6 +28,8 @@ const initialState = {
   setForgotPasswordData: () => {},
   setBase64Stamps: () => {},
   setAvailableQty: () => {},
+  setNoOfPages: () => {},
+  setDownloadURL: () => {},
 };
 
 export const useAuthStore = create()(
@@ -51,6 +55,8 @@ export const useAuthStore = create()(
       setForgotPasswordData: (res) => set({ forgotPasswordData: res }),
       setBase64Stamps: (res) => set({ base64Stamps: res }),
       setAvailableQty: (res) => set({ availableQty: res }),
+      setNoOfPages: (res) => set({ noOfPages: res }),
+      setDownloadURL: (res) => set({ downloadURL: res }),
     }),
     {
       name: "storage",

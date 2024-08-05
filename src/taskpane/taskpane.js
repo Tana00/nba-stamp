@@ -21,7 +21,7 @@ export async function insertText(text) {
   }
 }
 
-export async function insertImageBottomRightFromLocalPath() {
+export async function insertImageBottomRightFromLocalPath(totalPages) {
   try {
     const imageBase64 = await getImageBase64FromLocalPath(placeholderImagePath);
     const footerImageBase64 = await getImageBase64FromLocalPath(placeholderFooterImagePath);
@@ -41,6 +41,8 @@ export async function insertImageBottomRightFromLocalPath() {
       context.load(sections, "body/style");
       await context.sync();
 
+      let currentPageNumber = 1;
+
       sections.items.forEach((section) => {
         const footer = section.getFooter("primary");
         const paragraph = footer.insertParagraph("", Word.InsertLocation.end);
@@ -51,6 +53,10 @@ export async function insertImageBottomRightFromLocalPath() {
         footerImg.altTextTitle = "footer-placeholder";
         footerImg.width = 40;
         footerImg.height = 40;
+
+        // Insert page number using manually tracked current page number and total pages count
+        paragraph.insertText(`Stamp ${currentPageNumber} of ${totalPages}`, Word.InsertLocation.start);
+        currentPageNumber++;
       });
       await context.sync();
 
@@ -340,3 +346,69 @@ export async function removePlaceholderImages() {
     throw error;
   }
 }
+
+export const preparePDFDownload = async () => {
+  const { setDownloadStatus, setDownloadURL } = useAuthStore.getState();
+  try {
+    await Word.run(async (context) => {
+      await replacePlaceholdersWithOriginals();
+      await context.sync();
+
+      return new Promise((resolve, reject) => {
+        Office.context.document.getFileAsync(Office.FileType.Pdf, { sliceSize: 4194304 /* 4MB */ }, (result) => {
+          if (result.status === Office.AsyncResultStatus.Succeeded) {
+            const file = result.value;
+            const sliceCount = file.sliceCount;
+            let slicesReceived = 0;
+            const docdataSlices = [];
+
+            const getSlice = (index) => {
+              file.getSliceAsync(index, (sliceResult) => {
+                if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
+                  docdataSlices[index] = sliceResult.value.data;
+                  slicesReceived++;
+
+                  if (slicesReceived === sliceCount) {
+                    const docdata = new Uint8Array(docdataSlices.flat());
+                    const blob = new Blob([docdata], { type: "application/pdf" });
+                    const url = URL.createObjectURL(blob);
+                    setDownloadURL(url);
+                    resolve(url);
+                  } else {
+                    getSlice(index + 1);
+                  }
+                } else {
+                  console.error(`Failed to get slice ${index}: ${sliceResult.error.message}`);
+                  reject(`Failed to get slice ${index}: ${sliceResult.error.message}`);
+                }
+              });
+            };
+
+            getSlice(0);
+            setDownloadStatus(true);
+            removePlaceholderImages();
+          } else {
+            console.error(`Failed to get file: ${result.error.message}`);
+            setDownloadStatus(false);
+            replaceOriginalsWithPlaceholders();
+            reject(`Failed to get file: ${result.error.message}`);
+          }
+        });
+      });
+    });
+  } catch (error) {
+    console.error(`Error while downloading as PDF: ${error}`);
+    setDownloadStatus(false);
+    replaceOriginalsWithPlaceholders();
+    throw error;
+  }
+};
+
+export const initiateDownload = (documentName) => {
+  const { downloadURL } = useAuthStore.getState();
+  const a = document.createElement("a");
+  a.href = downloadURL;
+  a.download = `${documentName}.pdf`;
+  a.click();
+  URL.revokeObjectURL(downloadURL);
+};

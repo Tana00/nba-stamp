@@ -381,7 +381,7 @@ const Dashboard = () => {
                 <div className={styles.inner_box}>
                   <div>
                     <img src="../../../assets/stampWallet.png" alt="stamps" className={styles.image} />
-                    <p className="stamp_count">{dashboardData?.totalNoOfStampPurchased} Stamps</p>
+                    <p className="stamp_count">{dashboardData?.availableQty} Stamps</p>
                   </div>
                   <div className={styles.button_wrapper}>
                     <button

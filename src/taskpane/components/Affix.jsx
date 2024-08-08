@@ -12,7 +12,7 @@ import {
   preparePDFDownload,
   initiateDownload,
 } from "../taskpane";
-import PinVerification from "./PinVerification";
+// import PinVerification from "./PinVerification";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
 import { CustomDatePicker } from "./DatePicker";
@@ -246,7 +246,8 @@ const useStyles = makeStyles({
     },
   },
   passcode: {
-    textAlign: "center",
+    width: "100%",
+    textAlign: "start",
     margin: "1rem auto",
     "& p": {
       fontSize: "14px",
@@ -358,7 +359,7 @@ const AffixSteps = () => {
   const [active, setActive] = useState(1);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
-  const [pin, setPin] = useState(new Array(6).fill(""));
+  const [password, setPassword] = useState(new Array(6).fill(""));
   const [loading, setLoading] = useState(false);
   const [confirmationStep, setConfirmationStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -669,8 +670,25 @@ const AffixSteps = () => {
                         <span>Please note that this cannot be undone?</span>
                       </p>
                       <div className={styles.passcode}>
-                        <p>Input your passcode </p>
-                        <PinVerification
+                        <div className={styles.input_wrapper}>
+                          <label htmlFor="password">Input Password</label>
+                          <input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            setLoading(true);
+                            handleSetQRCode(password);
+                          }}
+                          disabled={!password}
+                        >
+                          <span>Continue</span>
+                        </button>
+                        {/* <PinVerification
                           setPin={setPin}
                           pin={pin}
                           handlePinComplete={async (completePin) => {
@@ -682,7 +700,7 @@ const AffixSteps = () => {
                             setPin(new Array(6).fill(""));
                             handleSetQRCode(passcode);
                           }}
-                        />
+                        /> */}
                       </div>
                     </>
                   )}

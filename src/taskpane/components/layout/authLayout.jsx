@@ -20,7 +20,7 @@ const useStyles = makeStyles({
   container: {
     width: "100%",
     maxWidth: "427px",
-    height: "396px",
+    minHeight: "396px",
     borderRadius: "10.22px",
     margin: "auto",
     backgroundColor: "#2E6A36",

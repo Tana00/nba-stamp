@@ -54,9 +54,9 @@ export const verifyOTP = async (otp) => {
   }
 };
 
-export const login = async (enrolmentNo, passcode) => {
+export const login = async (enrolmentNo, passcode, email) => {
   try {
-    const response = await api.post("/Account/authenticate", { enrolmentNo, passcode });
+    const response = await api.post("/Account/authenticate", { enrolmentNo, passcode, email });
     const { data } = response.data;
     // Save the access token in Zustand store
     const { setLoginData } = useAuthStore.getState();

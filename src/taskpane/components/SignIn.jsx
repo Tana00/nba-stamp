@@ -189,6 +189,7 @@ const Signin = () => {
   const styles = useStyles();
 
   const [enrolmentNo, setEnrolmentNo] = useState("");
+  const [email, setEmail] = useState("");
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -203,7 +204,7 @@ const Signin = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const res = await login(enrolmentNo, passcode);
+      const res = await login(enrolmentNo, passcode, email);
       if (res?.succeeded) {
         history.push("/dashboard");
       }
@@ -261,8 +262,22 @@ const Signin = () => {
               />
             </div>
             <div className={styles.input_wrapper}>
+              <label htmlFor="email" className={styles.label}>
+                Enter email
+              </label>
+              <input
+                name="email"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={styles.input}
+                placeholder="sample@gmail.com"
+              />
+            </div>
+            <div className={styles.input_wrapper}>
               <label htmlFor="passcode" className={styles.label}>
-                Enter passcode
+                Enter password
               </label>
               <input
                 name="passcode"
@@ -290,7 +305,10 @@ const Signin = () => {
               </button>
               <p className={styles.no_account}>
                 Don&apos;t have an account?{" "}
-                <span className={styles.sign_up_link} onClick={() => history.push("/signup")}>
+                <span
+                  className={styles.sign_up_link}
+                  // onClick={() => history.push("/signup")}
+                >
                   Sign up
                 </span>
               </p>

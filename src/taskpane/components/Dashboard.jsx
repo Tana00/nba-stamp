@@ -251,6 +251,48 @@ const useStyles = makeStyles({
       },
     },
   },
+  radio_input_wrapper: {
+    margin: ".5rem 0",
+    display: "flex",
+    alignItems: "flex-start",
+    flexDirection: "column",
+    gap: "0.5rem",
+    "& label": {
+      fontSize: "14px",
+      fontWeight: 600,
+      color: "#000000CC",
+      fontFamily: "'Poppins', sans-serif",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexDirection: "column",
+    },
+  },
+  radio_group: {
+    display: "flex",
+    alignItems: "center",
+    width: "50%",
+    "& label:last-child": {
+      width: "100%",
+    },
+  },
+  radio_label: {
+    flexDirection: "column",
+    "& span": {
+      fontSize: "12px",
+      fontWeight: 600,
+    },
+  },
+  radio_input: {
+    width: "1rem",
+    height: "1rem",
+    accentColor: "#2e6a36",
+  },
+  error: {
+    fontSize: "12px",
+    color: "#FE4141",
+    fontWeight: 500,
+  },
 });
 
 const Dashboard = () => {
@@ -267,6 +309,7 @@ const Dashboard = () => {
   const [stampCount, setStampCount] = useState("");
   const [amount, setAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [stampType, setStampType] = useState("public");
 
   const [isPopupVisible, { setTrue: showPopup, setFalse: hidePopup }] = useBoolean(false);
   const [isConfirmPaymentPopup, { setTrue: showConfirmPaymentPopup, setFalse: hideConfirmPaymentPopup }] =
@@ -290,7 +333,7 @@ const Dashboard = () => {
 
   const handleBuyStamp = async () => {
     try {
-      const data = await buyStamp({ quantity: stampCount, amount });
+      const data = await buyStamp({ quantity: stampCount, amount, isPublic: stampType === "public" });
       if (data) {
         window.open(data?.data?.authorizationUrl, "_blank");
         hidePopup();
@@ -298,13 +341,14 @@ const Dashboard = () => {
         showConfirmPaymentPopup();
       }
     } catch (error) {
+      setIsLoading(false);
       setError("Failed to fetch dashboard data");
     }
   };
 
   const isDisabled = () => {
     const numericValue = parseFloat(stampCount);
-    return isNaN(numericValue) || numericValue < 3;
+    return isNaN(numericValue) || numericValue < 50;
   };
 
   const formatCurrency = (amount) => {
@@ -340,7 +384,7 @@ const Dashboard = () => {
         <div className={styles.box}>
           <div className={styles.container}>
             <div className={styles.header}>
-              <p className={styles.text}>Welcome Back, {name ?? "Taiwo"}</p>
+              <p className={styles.text}>Welcome Back, {name}</p>
 
               <button
                 onClick={() => {
@@ -351,7 +395,7 @@ const Dashboard = () => {
                 Sign Out
               </button>
             </div>
-            {error && <div>Error: {error}</div>}
+            {error && <div className={styles.error}>Error: {error}</div>}
             <div>
               <p className={styles.title}>NBA Stamp & Seal</p>
               <div className={styles.wrapper}>
@@ -374,7 +418,7 @@ const Dashboard = () => {
                     <button
                       className={styles.button}
                       onClick={() => history.push("affix-stamp")}
-                      disabled={dashboardData?.availableQty === 0}
+                      disabled={dashboardData?.availableQty === 0 || !dashboardData?.availableQty}
                     >
                       Affix Stamp
                     </button>
@@ -418,22 +462,38 @@ const Dashboard = () => {
                   }}
                   placeholder="50"
                 />
-                <p className={styles.forgot_password}>Minimum of 3 Stamps</p>
+                <p className={styles.forgot_password}>Minimum of 50 Stamps</p>
               </div>
-              {/* <div className={styles.input_wrapper}>
-                <label htmlFor="passcode" className={styles.label}>
-                  Enter passcode
-                </label>
-                <input
-                  name="passcode"
-                  id="passcode"
-                  type="password"
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                  className={styles.input}
-                  placeholder="********"
-                />
-              </div> */}
+              <div className={styles.radio_input_wrapper}>
+                <label className={styles.label}>Stamp type</label>
+                <div className={styles.radio_group}>
+                  <label htmlFor="public" className={styles.radio_label}>
+                    <input
+                      type="radio"
+                      id="public"
+                      name="stampType"
+                      value="public"
+                      checked={stampType === "public"}
+                      onChange={(e) => setStampType(e.target.value)}
+                      className={styles.radio_input}
+                    />
+                    <span>Public</span>
+                  </label>
+                  <label htmlFor="private" className={styles.radio_label}>
+                    <input
+                      type="radio"
+                      id="private"
+                      name="stampType"
+                      value="private"
+                      checked={stampType === "private"}
+                      onChange={(e) => setStampType(e.target.value)}
+                      className={styles.radio_input}
+                    />
+                    <span>Private</span>
+                  </label>
+                </div>
+              </div>
+
               <div className={styles.amount_wrapper}>
                 <p className={styles.total_amount}>Total amount</p>
                 <p className={`${styles.amount} ${stampCount > 0 ? styles.active_amount : styles.inactive_amount}`}>
@@ -452,6 +512,7 @@ const Dashboard = () => {
                 <span>Continue</span>
                 {isLoading && <div className={styles.loader}></div>}
               </button>
+              {error && <div className={styles.error}>Error: {error}</div>}
             </div>
           }
         />

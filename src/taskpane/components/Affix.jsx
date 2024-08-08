@@ -391,8 +391,6 @@ const AffixSteps = () => {
         setActive(2);
         const data = res?.data;
 
-        // const qrCode = generateQRCode("c8a7ffd-9456-43f7-8daf-f80dcaede78c");
-
         const stampData = {
           firstName: data?.firstName,
           lastName: data?.lastName,
@@ -400,12 +398,8 @@ const AffixSteps = () => {
           qrCode: data?.stampSignature,
         };
 
-        // const stampData = {
-        //   firstName: "Emefiele",
-        //   lastName: "Happiness Grace",
-        //   number: "GG123456",
-        //   qrCode: "c8a7ffd-9456-43f7-8daf-f80dcaede78c",
-        // };
+        // const isPublicStamp = data?.isPublic;
+
         const svgString =
           "data:image/svg+xml," + escape(ReactDOMServer.renderToStaticMarkup(CreateStamp({ ...stampData, size: 200 })));
         const footerSvgString =
@@ -414,7 +408,6 @@ const AffixSteps = () => {
         const footerBase64 = await getImageBase64FromSvgComponent(footerSvgString);
 
         setBase64Stamps({ main: base64, footer: footerBase64 });
-        // await handleStampInsertion();
       } else {
         setIsLoading(false);
         setError(res?.message);
@@ -422,7 +415,6 @@ const AffixSteps = () => {
     } catch (error) {
       setIsLoading(false);
       setError(error?.response?.data?.message || "An error occurred. Please try again");
-      // history.push("/");
     }
   };
 
@@ -437,7 +429,7 @@ const AffixSteps = () => {
         setAvailableStamp(res?.data?.availableQty);
       }
     } catch (error) {
-      // history.push("/");
+      // history.push('/')
     }
   };
 
@@ -482,7 +474,6 @@ const AffixSteps = () => {
               <div
                 onClick={async () => {
                   if (step.id === 1) {
-                    // handleAffixStamp();
                     showStep1Popup();
                     setDownloadStatus(null);
                     setConfirmationStep(1);

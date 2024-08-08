@@ -197,7 +197,7 @@ const Signin = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const res = await login({ scn: enrolmentNo, passcode, email });
+      const res = await login({ scn: enrolmentNo, password: passcode, email });
       if (res?.succeeded) {
         history.push("/dashboard");
       }

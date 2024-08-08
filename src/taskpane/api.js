@@ -54,9 +54,9 @@ export const verifyOTP = async (otp) => {
   }
 };
 
-export const login = async (scn, password, email) => {
+export const login = async (payload) => {
   try {
-    const response = await api.post("/Account/authenticate", { scn, password, email });
+    const response = await api.post("/Account/authenticate", { ...payload });
     const { data } = response.data;
     // Save the access token in Zustand store
     const { setLoginData } = useAuthStore.getState();

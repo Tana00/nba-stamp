@@ -63,7 +63,7 @@ const useStyles = makeStyles({
     justifyContent: "center",
     flexDirection: "column",
     gap: "8px",
-    marginTop: ".5rem",
+    marginTop: "1.4rem",
   },
   button: {
     backgroundColor: "#2E6A36",

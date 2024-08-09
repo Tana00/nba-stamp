@@ -359,7 +359,7 @@ const AffixSteps = () => {
   const [active, setActive] = useState(1);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
-  const [password, setPassword] = useState(new Array(6).fill(""));
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmationStep, setConfirmationStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);

@@ -412,5 +412,5 @@ export const initiateDownload = async (documentName) => {
   a.download = `${documentName}.pdf`;
   a.click();
   URL.revokeObjectURL(downloadURL);
-  await removePlaceholderImages();
+  // await removePlaceholderImages();
 };

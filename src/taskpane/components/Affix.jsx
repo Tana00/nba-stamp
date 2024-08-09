@@ -424,11 +424,11 @@ const AffixSteps = () => {
     try {
       const res = await setQRCode({ stampSignature: stampSignature?.stampSignature, password: passcode });
       if (res?.succeeded) {
-        setLoading(false);
         initiateDownload(title);
         setConfirmationStep(3);
         setAvailableStamp(res?.data?.availableQty);
       }
+      setLoading(false);
     } catch (error) {
       setLoading(false);
       // history.push('/')

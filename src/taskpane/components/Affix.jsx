@@ -422,7 +422,7 @@ const AffixSteps = () => {
   const handleSetQRCode = async (passcode) => {
     await preparePDFDownload();
     try {
-      const res = await setQRCode({ stampSignature: stampSignature?.stampSignature, passcode });
+      const res = await setQRCode({ stampSignature: stampSignature?.stampSignature, password: passcode });
       if (res?.succeeded) {
         setLoading(false);
         initiateDownload(title);
@@ -430,6 +430,7 @@ const AffixSteps = () => {
         setAvailableStamp(res?.data?.availableQty);
       }
     } catch (error) {
+      setLoading(false);
       // history.push('/')
     }
   };

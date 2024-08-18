@@ -7,14 +7,13 @@ import { ArrowLeft12Filled } from "@fluentui/react-icons";
 const useStyles = makeStyles({
   welcome__header: {
     // backgroundColor: tokens.colorNeutralBackground3,
-    paddingLeft: "10px",
   },
   header_container: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    paddingBottom: "30px",
-    paddingTop: "10px",
+    paddingBottom: "20px",
+    paddingTop: "30px",
   },
   logo: {
     width: "122px",
@@ -32,6 +31,7 @@ const useStyles = makeStyles({
     alignItems: "center",
     gap: "8px",
     cursor: "pointer",
+    paddingLeft: "10px",
   },
   back_button_icon: {
     backgroundColor: "#7F7F7F1A",
@@ -56,14 +56,18 @@ const Header = (props) => {
   const { logo, message } = props;
   const styles = useStyles();
 
+  const isSigninPath = history?.location?.pathname === "/signin";
+
   return (
     <section className={styles.welcome__header}>
-      <div onClick={() => history.goBack()} className={styles.back_button}>
-        <div className={styles.back_button_icon}>
-          <ArrowLeft12Filled />
+      {!isSigninPath && (
+        <div onClick={() => history.goBack()} className={styles.back_button}>
+          <div className={styles.back_button_icon}>
+            <ArrowLeft12Filled />
+          </div>
+          <p className={styles.back_button_text}>Back</p>
         </div>
-        <p className={styles.back_button_text}>Back</p>
-      </div>
+      )}
       <div className={styles.header_container}>
         <Image width="90" height="90" src={logo} alt="logo" className={styles.logo} />
         <h1 className={styles.message}>{message}</h1>

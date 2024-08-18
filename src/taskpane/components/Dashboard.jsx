@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
-import { getDashboardData, buyStamp } from "../api";
+import { useFlutterwave, closePaymentModal } from "flutterwave-react-v3";
+import { getDashboardData, buyStamp, getPersonalInfo, payment } from "../api";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
 import { PopupModal } from "./shared/PopupModal";
@@ -264,29 +265,50 @@ const useStyles = makeStyles({
       fontFamily: "'Poppins', sans-serif",
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
-      flexDirection: "column",
+      // justifyContent: "center",
     },
   },
   radio_group: {
     display: "flex",
     alignItems: "center",
-    width: "50%",
+    // flexDirection: "column",
+    gap: "1.2rem",
+    width: "91%",
     "& label:last-child": {
       width: "100%",
     },
   },
   radio_label: {
-    flexDirection: "column",
+    padding: "0.5rem 1rem",
+    width: "100%",
+    cursor: "pointer",
     "& span": {
-      fontSize: "12px",
-      fontWeight: 600,
+      fontSize: "14px",
+      color: "#9c9c9c",
+      fontWeight: 400,
     },
   },
   radio_input: {
-    width: "1rem",
-    height: "1rem",
-    accentColor: "#2e6a36",
+    opacity: 0,
+    position: "absolute",
+    left: "-9999px",
+  },
+  radio_image: {
+    width: "40px",
+    height: "40px",
+    marginRight: "8px",
+  },
+  selected: {
+    // border: "1px solid #2E6A36",
+    borderRadius: "5px",
+    "& span": {
+      color: "#2e6a36",
+      fontWeight: 600,
+    },
+    "& img": {
+      width: "50px",
+      height: "50px",
+    },
   },
   error: {
     fontSize: "12px",
@@ -304,30 +326,95 @@ const Dashboard = () => {
   const name = useAuthStore((state) => state.name);
 
   const [dashboardData, setDashboardData] = useState(null);
+  const [personalInfo, setPersonalInfo] = useState(null);
   const [error, setError] = useState(null);
   // const [passcode, setPasscode] = useState("");
   const [stampCount, setStampCount] = useState("");
   const [amount, setAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [stampType, setStampType] = useState("public");
+  const [stampType, setStampType] = useState("private");
 
   const [isPopupVisible, { setTrue: showPopup, setFalse: hidePopup }] = useBoolean(false);
-  const [isConfirmPaymentPopup, { setTrue: showConfirmPaymentPopup, setFalse: hideConfirmPaymentPopup }] =
-    useBoolean(false);
+  // const [isConfirmPaymentPopup, { setTrue: showConfirmPaymentPopup, setFalse: hideConfirmPaymentPopup }] =
+  //   useBoolean(false);
+
+  // console.log(process.env.REACT_APP_API_KEY);
+
+  const config = {
+    public_key: "FLWPUBK_TEST-9080bdfaebea5be9ae3d66658dc25b18-X",
+    tx_ref: Date.now(),
+    amount: amount,
+    currency: "NGN",
+    payment_options: "card,mobilemoney,ussd",
+    customer: {
+      email: personalInfo?.email,
+      phone_number: personalInfo?.phone,
+      name: name,
+    },
+    customizations: {
+      title: "Stamp Payment",
+      description: `${stampCount} Stamps`,
+      logo: "https://nba-stamp.vercel.app/assets/icon-80.png",
+    },
+  };
+
+  const handleFlutterPayment = useFlutterwave(config);
+
+  const onPaymentSuccess = (response) => {
+    console.log("Payment successful:", response);
+    // Perform actions after payment is successful
+    // setIsLoading(true);
+    try {
+      // const data = await payment({
+      //     "scn": "string",
+      //     "purchasedQty": stampCount,
+      //     "purchaseAmount": response?.amount,
+      //     "onlineCharge": 0,
+      //     "totalAmount": 0,
+      //     "referenceNo": "string",
+      //     "authorizationUrl": "string",
+      //     "isPublic": stampType === "public"
+      // })
+      setIsLoading(false);
+      closePaymentModal();
+    } catch (error) {
+      setError("");
+      closePaymentModal();
+    }
+  };
+
+  const onPaymentClose = () => {
+    setIsLoading(false);
+    setError("Payment was not successful");
+    console.log("Payment modal closed");
+    closePaymentModal();
+    // Perform actions after the modal is closed
+  };
 
   const handleResetFields = () => {
     setAmount(0);
     setStampCount("");
   };
 
+  const fetchPersonalInfo = async () => {
+    try {
+      const data = await getPersonalInfo();
+      setPersonalInfo(data?.data);
+    } catch (error) {
+      setError("Failed to fetch info");
+      history.push("/signin");
+    }
+  };
+
   const fetchData = async () => {
     try {
       const data = await getDashboardData();
       setDashboardData(data?.data);
-      hideConfirmPaymentPopup();
+      // hideConfirmPaymentPopup();
       handleResetFields();
     } catch (error) {
       setError("Failed to fetch dashboard data");
+      history.push("/signin");
     }
   };
 
@@ -338,7 +425,7 @@ const Dashboard = () => {
         window.open(data?.data?.authorizationUrl, "_blank");
         hidePopup();
         setIsLoading(false);
-        showConfirmPaymentPopup();
+        // showConfirmPaymentPopup();
       }
     } catch (error) {
       setIsLoading(false);
@@ -361,6 +448,17 @@ const Dashboard = () => {
 
     return formatter.format(amount);
   };
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 10000); // 10 seconds
+
+      // Cleanup function to clear the timer if the component unmounts or if error changes
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   useEffect(() => {
     fetchData();
@@ -392,7 +490,7 @@ const Dashboard = () => {
                   history.push("/signin");
                 }}
               >
-                Sign Out
+                Log Out
               </button>
             </div>
             {error && <div className={styles.error}>Error: {error}</div>}
@@ -410,6 +508,7 @@ const Dashboard = () => {
                       className={styles.button}
                       onClick={() => {
                         showPopup();
+                        fetchPersonalInfo();
                         // window.open("https://www.google.com", "_blank");
                       }}
                     >
@@ -467,19 +566,10 @@ const Dashboard = () => {
               <div className={styles.radio_input_wrapper}>
                 <label className={styles.label}>Stamp type</label>
                 <div className={styles.radio_group}>
-                  <label htmlFor="public" className={styles.radio_label}>
-                    <input
-                      type="radio"
-                      id="public"
-                      name="stampType"
-                      value="public"
-                      checked={stampType === "public"}
-                      onChange={(e) => setStampType(e.target.value)}
-                      className={styles.radio_input}
-                    />
-                    <span>Public</span>
-                  </label>
-                  <label htmlFor="private" className={styles.radio_label}>
+                  <label
+                    htmlFor="private"
+                    className={`${styles.radio_label} ${stampType === "private" ? styles.selected : ""}`}
+                  >
                     <input
                       type="radio"
                       id="private"
@@ -489,23 +579,42 @@ const Dashboard = () => {
                       onChange={(e) => setStampType(e.target.value)}
                       className={styles.radio_input}
                     />
+                    <img src="../../../assets/stamp1.svg" alt="Private Stamp" className={styles.radio_image} />
                     <span>Private</span>
+                  </label>
+                  <label
+                    htmlFor="public"
+                    className={`${styles.radio_label} ${stampType === "public" ? styles.selected : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      id="public"
+                      name="stampType"
+                      value="public"
+                      checked={stampType === "public"}
+                      onChange={(e) => setStampType(e.target.value)}
+                      className={styles.radio_input}
+                    />
+                    <img src="../../../assets/pink-stamp.svg" alt="Public Stamp" className={styles.radio_image} />
+                    <span>Public</span>
                   </label>
                 </div>
               </div>
 
               <div className={styles.amount_wrapper}>
                 <p className={styles.total_amount}>Total amount</p>
-                <p className={`${styles.amount} ${stampCount > 0 ? styles.active_amount : styles.inactive_amount}`}>
+                <p className={`${styles.amount} ${stampCount >= 50 ? styles.active_amount : styles.inactive_amount}`}>
                   {formatCurrency(amount)}
                 </p>
               </div>
               <button
                 onClick={() => {
-                  // hidePopup();
-                  // initializePayment(onSuccess, onClose);
-                  handleBuyStamp();
+                  // handleBuyStamp();
                   setIsLoading(true);
+                  handleFlutterPayment({
+                    callback: onPaymentSuccess,
+                    onClose: onPaymentClose,
+                  });
                 }}
                 disabled={isDisabled()}
               >
@@ -518,7 +627,7 @@ const Dashboard = () => {
         />
       )}
 
-      {isConfirmPaymentPopup && (
+      {/* {isConfirmPaymentPopup && (
         <PopupModal
           hidePopup={hideConfirmPaymentPopup}
           content={
@@ -546,7 +655,7 @@ const Dashboard = () => {
             </div>
           }
         />
-      )}
+      )} */}
     </>
   );
 };

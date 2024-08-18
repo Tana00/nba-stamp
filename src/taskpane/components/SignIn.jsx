@@ -22,6 +22,44 @@ const useStyles = makeStyles({
     fontWeight: 500,
     fontFamily: "'Poppins', sans-serif",
   },
+  input_container: {
+    display: "flex",
+    alignItems: "center",
+    marginTop: "6px",
+    marginBottom: "4px",
+    border: "0.66px solid #D6D6D6",
+    borderRadius: "6.61px",
+    height: "60px",
+    overflow: "hidden", // Ensures the input and prefix stay within the container
+  },
+  prefix: {
+    backgroundColor: "transparent",
+    padding: "0 10px",
+    fontSize: "18px",
+    fontFamily: "'Poppins', sans-serif",
+    color: "#000000CC",
+    display: "flex",
+    alignItems: "center",
+    fontWeight: 500,
+    paddingRight: 0,
+  },
+  enrollmentNoInput: {
+    flex: 1, // Makes sure the input takes the remaining space
+    color: "#000000CC",
+    border: "none",
+    fontSize: "18px",
+    fontFamily: "'Poppins', sans-serif",
+    paddingLeft: "5px", // Adjust padding to align text after the prefix
+    paddingRight: "10px",
+    fontWeight: 500,
+    "&::placeholder": {
+      color: "#00000033",
+    },
+    ":focus-visible": {
+      border: "none",
+      outline: "none",
+    },
+  },
   input: {
     color: "#000000CC",
     border: "0.66px solid #D6D6D6",
@@ -218,15 +256,21 @@ const Signin = () => {
               <label htmlFor="enrolmentNo" className={styles.label}>
                 Enter enrolment number
               </label>
-              <input
-                name="enrolmentNo"
-                id="enrolmentNo"
-                type="text"
-                value={enrolmentNo}
-                onChange={(e) => setEnrolmentNo(e.target.value)}
-                className={styles.input}
-                placeholder="SCN******"
-              />
+              <div className={styles.input_container}>
+                <span className={styles.prefix}>SCN</span>
+                <input
+                  name="enrolmentNo"
+                  id="enrolmentNo"
+                  type="tel"
+                  value={enrolmentNo.replace(/^SCN/, "")}
+                  onChange={(e) => {
+                    const numericValue = e.target.value.replace(/\D/g, "");
+                    setEnrolmentNo(`SCN${numericValue}`);
+                  }}
+                  className={styles.enrollmentNoInput}
+                  placeholder="******"
+                />
+              </div>
             </div>
             <div className={styles.input_wrapper}>
               <label htmlFor="email" className={styles.label}>

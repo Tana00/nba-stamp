@@ -56,7 +56,15 @@ export const verifyOTP = async (otp) => {
 
 export const login = async (payload) => {
   try {
-    const response = await api.post("/Account/authenticate", { ...payload });
+    const response = await api.post(
+      "/Account/authenticate",
+      { ...payload },
+      {
+        headers: {
+          "auth-type": "none",
+        },
+      }
+    );
     const { data } = response.data;
     // Save the access token in Zustand store
     const { setLoginData } = useAuthStore.getState();
@@ -126,6 +134,16 @@ export const getDashboardData = async () => {
   }
 };
 
+export const getPersonalInfo = async () => {
+  try {
+    const response = await api.get("/Account/personal-info");
+    return response.data;
+  } catch (error) {
+    console.error("Error:", error);
+    throw error;
+  }
+};
+
 export const buyStamp = async (payload) => {
   try {
     const response = await api.post("/Stamp/buy", { ...payload });
@@ -133,6 +151,17 @@ export const buyStamp = async (payload) => {
     return response.data;
   } catch (error) {
     console.error("Error buying stamp:", error);
+    throw error;
+  }
+};
+
+export const payment = async (payload) => {
+  try {
+    const response = await api.post("/Stamp/payment", { ...payload });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error:", error);
     throw error;
   }
 };

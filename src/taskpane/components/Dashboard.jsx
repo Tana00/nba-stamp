@@ -3,7 +3,12 @@ import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
 import { useFlutterwave, closePaymentModal } from "flutterwave-react-v3";
-import { getDashboardData, buyStamp, getPersonalInfo, payment } from "../api";
+import {
+  getDashboardData,
+  //  buyStamp,
+  getPersonalInfo,
+  // payment
+} from "../api";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
 import { PopupModal } from "./shared/PopupModal";
@@ -418,20 +423,20 @@ const Dashboard = () => {
     }
   };
 
-  const handleBuyStamp = async () => {
-    try {
-      const data = await buyStamp({ quantity: stampCount, amount, isPublic: stampType === "public" });
-      if (data) {
-        window.open(data?.data?.authorizationUrl, "_blank");
-        hidePopup();
-        setIsLoading(false);
-        // showConfirmPaymentPopup();
-      }
-    } catch (error) {
-      setIsLoading(false);
-      setError("Failed to fetch dashboard data");
-    }
-  };
+  // const handleBuyStamp = async () => {
+  //   try {
+  //     const data = await buyStamp({ quantity: stampCount, amount, isPublic: stampType === "public" });
+  //     if (data) {
+  //       window.open(data?.data?.authorizationUrl, "_blank");
+  //       hidePopup();
+  //       setIsLoading(false);
+  //       // showConfirmPaymentPopup();
+  //     }
+  //   } catch (error) {
+  //     setIsLoading(false);
+  //     setError("Failed to fetch dashboard data");
+  //   }
+  // };
 
   const isDisabled = () => {
     const numericValue = parseFloat(stampCount);

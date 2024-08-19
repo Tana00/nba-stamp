@@ -41,7 +41,7 @@ export async function insertImageBottomRightFromLocalPath(totalPages) {
       context.load(sections, "body/style");
       await context.sync();
 
-      let currentPageNumber = 1;
+      // let currentPageNumber = 1;
 
       sections.items.forEach((section) => {
         const footer = section.getFooter("primary");
@@ -53,10 +53,10 @@ export async function insertImageBottomRightFromLocalPath(totalPages) {
         footerImg.altTextTitle = "footer-placeholder";
         footerImg.width = 40;
         footerImg.height = 40;
-
-        // Insert page number using manually tracked current page number and total pages count
-        paragraph.insertText(`Stamp ${currentPageNumber} of ${totalPages}`, Word.InsertLocation.start);
-        currentPageNumber++;
+        console.log(totalPages);
+        //   // Insert page number using manually tracked current page number and total pages count
+        //   // paragraph.insertText(`Stamp ${currentPageNumber} of ${totalPages}`, Word.InsertLocation.start);
+        //   // currentPageNumber++;
       });
       await context.sync();
 
@@ -70,9 +70,9 @@ export async function insertImageBottomRightFromLocalPath(totalPages) {
 export async function downloadAsPDF(documentName) {
   const { setDownloadStatus } = useAuthStore.getState();
   try {
-    await Word.run(async (context) => {
-      await replacePlaceholdersWithOriginals(); // Ensure this is complete
-      await context.sync(); // Await context.sync() for completion
+    await Word.run(async () => {
+      // await replacePlaceholdersWithOriginals(); // Ensure this is complete
+      // await context.sync(); // Await context.sync() for completion
 
       return new Promise((resolve, reject) => {
         Office.context.document.getFileAsync(Office.FileType.Pdf, { sliceSize: 4194304 /* 4MB */ }, (result) => {
@@ -115,7 +115,7 @@ export async function downloadAsPDF(documentName) {
           } else {
             console.error(`Failed to get file: ${result.error.message}`);
             setDownloadStatus(false);
-            replaceOriginalsWithPlaceholders(); // Ensure this is appropriate
+            // replaceOriginalsWithPlaceholders(); // Ensure this is appropriate
             reject(`Failed to get file: ${result.error.message}`);
           }
         });
@@ -124,7 +124,7 @@ export async function downloadAsPDF(documentName) {
   } catch (error) {
     console.error(`Error while downloading as PDF: ${error}`);
     setDownloadStatus(false);
-    replaceOriginalsWithPlaceholders(); // Ensure this is appropriate
+    // replaceOriginalsWithPlaceholders(); // Ensure this is appropriate
   }
 }
 
@@ -132,8 +132,6 @@ export async function replacePlaceholdersWithOriginals() {
   try {
     const { base64Stamps } = useAuthStore.getState();
 
-    // const originalImageBase64 = await getImageBase64FromLocalPath(originalImagePath);
-    // const originalFooterImageBase64 = await getImageBase64FromLocalPath(originalFooterImagePath);
     const originalImageBase64 = base64Stamps?.main;
     const originalFooterImageBase64 = base64Stamps?.footer;
 
@@ -159,8 +157,8 @@ export async function replacePlaceholdersWithOriginals() {
           // Example condition
           picture.insertInlinePictureFromBase64(originalImageBase64, Word.InsertLocation.replace);
           picture.altTextTitle = "original"; // Update altText to distinguish it
-          picture.width = 80;
-          picture.height = 80;
+          // picture.width = 80;
+          // picture.height = 80;
         }
       }
 
@@ -187,8 +185,13 @@ export async function replacePlaceholdersWithOriginals() {
           for (const picture of paragraphPictures.items) {
             if (picture.altTextTitle === "footer-placeholder") {
               // Example condition
-              picture.insertInlinePictureFromBase64(originalFooterImageBase64, Word.InsertLocation.replace);
+              const footerImg = picture.insertInlinePictureFromBase64(
+                originalFooterImageBase64,
+                Word.InsertLocation.replace
+              );
               picture.altTextTitle = "footer-original"; // Update altText to distinguish it
+              footerImg.width = 40;
+              footerImg.height = 40;
             }
           }
         }
@@ -350,7 +353,7 @@ export async function removePlaceholderImages() {
 }
 
 export const preparePDFDownload = async () => {
-  const { setDownloadStatus, setDownloadURL } = useAuthStore.getState();
+  const { setDownloadStatus, setDownloadURL, setDownloadBlob } = useAuthStore.getState();
   try {
     await Word.run(async (context) => {
       await replacePlaceholdersWithOriginals();
@@ -375,6 +378,7 @@ export const preparePDFDownload = async () => {
                     const blob = new Blob([docdata], { type: "application/pdf" });
                     const url = URL.createObjectURL(blob);
                     setDownloadURL(url);
+                    setDownloadBlob(blob);
                     resolve(url);
                   } else {
                     getSlice(index + 1);

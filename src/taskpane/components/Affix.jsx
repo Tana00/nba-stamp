@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import ReactDOMServer from "react-dom/server";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
@@ -7,7 +6,6 @@ import AffixLayout from "./layout/affixLayout";
 import { PopupModal } from "./shared/PopupModal";
 import {
   insertImageBottomRightFromLocalPath,
-  // downloadAsPDF,
   removePlaceholderImages,
   preparePDFDownload,
   initiateDownload,
@@ -17,9 +15,8 @@ import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
 import { CustomDatePicker } from "./DatePicker";
 import { affixStamp, setQRCode } from "../api";
-import { getImageBase64FromSvgComponent } from "../helpers/imageToBase64";
+import { getImageBase64FromLocalPath, affixTextOnImage } from "../helpers/imageToBase64";
 import { dateTimeToEpoch } from "../helpers/dateTimeToEpoch";
-import CreateStamp from "./Stamp";
 
 const steps = [
   {
@@ -369,7 +366,8 @@ const AffixSteps = () => {
   const [pageCount, setPageCount] = useState(1);
 
   const downloadStatus = useAuthStore((state) => state.downloadStatus);
-  const downloadURL = useAuthStore((state) => state.downloadURL);
+  // const downloadURL = useAuthStore((state) => state.downloadURL);
+  const downloadBlob = useAuthStore((state) => state.downloadBlob);
   const setDownloadStatus = useAuthStore((state) => state.setDownloadStatus);
   const stampSignature = useAuthStore((state) => state.stampSignature);
   const setBase64Stamps = useAuthStore((state) => state.setBase64Stamps);
@@ -393,22 +391,19 @@ const AffixSteps = () => {
         const data = res?.data;
 
         const stampData = {
-          firstName: data?.firstName,
-          lastName: data?.lastName,
-          number: data?.enrolmentNo,
+          name: data?.firstName + " " + data?.lastName,
+          number: data?.enrolmentNo?.replace("scn", ""),
           qrCode: data?.stampSignature,
         };
 
-        // const isPublicStamp = data?.isPublic;
+        const isPublicStamp = data?.isPublic;
 
-        const svgString =
-          "data:image/svg+xml," + escape(ReactDOMServer.renderToStaticMarkup(CreateStamp({ ...stampData, size: 200 })));
-        const footerSvgString =
-          "data:image/svg+xml," + escape(ReactDOMServer.renderToStaticMarkup(CreateStamp({ ...stampData, size: 30 })));
-        const base64 = await getImageBase64FromSvgComponent(svgString);
-        const footerBase64 = await getImageBase64FromSvgComponent(footerSvgString);
+        const base64 = await getImageBase64FromLocalPath(
+          isPublicStamp ? "../../assets/pink-stamp-1.png" : "../../assets/stamp1-1.png"
+        );
+        const finalImage = await affixTextOnImage(base64, stampData);
 
-        setBase64Stamps({ main: base64, footer: footerBase64 });
+        setBase64Stamps({ main: finalImage, footer: finalImage });
       } else {
         setIsLoading(false);
         setError(res?.message);
@@ -440,8 +435,16 @@ const AffixSteps = () => {
   };
 
   const handleOpenFile = () => {
-    if (downloadURL) {
-      window.open(downloadURL, "_blank");
+    if (downloadBlob) {
+      // Convert the blob to a Data URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result;
+        window.open(dataUrl, "_blank");
+      };
+      reader.readAsDataURL(downloadBlob);
+    } else {
+      console.log("No Blob available to oprn the file");
     }
   };
 
@@ -497,7 +500,7 @@ const AffixSteps = () => {
                 {active > step?.id && (
                   <div className="completed">
                     <p>Completed!</p>
-                    <img src="../../../assets/green-check.png" alt="checked sign" className="check_sign" />
+                    <img src="../../assets/green-check.png" alt="checked sign" className="check_sign" />
                   </div>
                 )}
                 {/* {active >= 2 && step.id === 2 && (

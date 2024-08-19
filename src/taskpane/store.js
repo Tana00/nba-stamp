@@ -16,6 +16,7 @@ const initialState = {
   base64Stamps: null,
   noOfPages: 1,
   downloadURL: null,
+  downloadBlob: null,
   setLoginData: () => {},
   clearLoginData: () => {},
   isTokenExpired: () => true,
@@ -30,6 +31,7 @@ const initialState = {
   setAvailableQty: () => {},
   setNoOfPages: () => {},
   setDownloadURL: () => {},
+  setDownloadBlob: () => {},
 };
 
 export const useAuthStore = create()(
@@ -57,6 +59,7 @@ export const useAuthStore = create()(
       setAvailableQty: (res) => set({ availableQty: res }),
       setNoOfPages: (res) => set({ noOfPages: res }),
       setDownloadURL: (res) => set({ downloadURL: res }),
+      setDownloadBlob: (res) => set({ downloadBlob: res }),
     }),
     {
       name: "storage",

@@ -154,11 +154,16 @@ export async function replacePlaceholdersWithOriginals() {
       // Replace placeholder images in the document
       for (const picture of inlinePictures.items) {
         if (picture.altTextTitle === "placeholder") {
-          // Example condition
-          picture.insertInlinePictureFromBase64(originalImageBase64, Word.InsertLocation.replace);
-          picture.altTextTitle = "original"; // Update altText to distinguish it
-          // picture.width = 80;
-          // picture.height = 80;
+          // Load the original dimensions
+          const originalWidth = picture.width;
+          const originalHeight = picture.height;
+          const insertedPicture = picture.insertInlinePictureFromBase64(
+            originalImageBase64,
+            Word.InsertLocation.replace
+          );
+          insertedPicture.width = originalWidth;
+          insertedPicture.height = originalHeight;
+          insertedPicture.altTextTitle = "original"; // Update altText to distinguish it
         }
       }
 

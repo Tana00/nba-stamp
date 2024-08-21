@@ -1,14 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
-import { useFlutterwave, closePaymentModal } from "flutterwave-react-v3";
-import {
-  getDashboardData,
-  //  buyStamp,
-  getPersonalInfo,
-  // payment
-} from "../api";
+import { getDashboardData, buyStamp } from "../api";
 import Spinner from "./shared/Spinner";
 import { useAuthStore } from "../store";
 import { PopupModal } from "./shared/PopupModal";
@@ -331,84 +325,22 @@ const Dashboard = () => {
   const name = useAuthStore((state) => state.name);
 
   const [dashboardData, setDashboardData] = useState(null);
-  const [personalInfo, setPersonalInfo] = useState(null);
   const [error, setError] = useState(null);
   // const [passcode, setPasscode] = useState("");
   const [stampCount, setStampCount] = useState("");
   const [amount, setAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [stampType, setStampType] = useState("private");
+  const intervalRef = useRef(null);
+  const durationRef = useRef(0); // To keep track of elapsed time
 
   const [isPopupVisible, { setTrue: showPopup, setFalse: hidePopup }] = useBoolean(false);
   // const [isConfirmPaymentPopup, { setTrue: showConfirmPaymentPopup, setFalse: hideConfirmPaymentPopup }] =
   //   useBoolean(false);
 
-  // console.log(process.env.REACT_APP_API_KEY);
-
-  const config = {
-    public_key: "FLWPUBK_TEST-9080bdfaebea5be9ae3d66658dc25b18-X",
-    tx_ref: Date.now(),
-    amount: amount,
-    currency: "NGN",
-    payment_options: "card,mobilemoney,ussd",
-    customer: {
-      email: personalInfo?.email,
-      phone_number: personalInfo?.phone,
-      name: name,
-    },
-    customizations: {
-      title: "Stamp Payment",
-      description: `${stampCount} Stamps`,
-      logo: "https://nba-stamp.vercel.app/assets/icon-80.png",
-    },
-  };
-
-  const handleFlutterPayment = useFlutterwave(config);
-
-  const onPaymentSuccess = (response) => {
-    console.log("Payment successful:", response);
-    // Perform actions after payment is successful
-    // setIsLoading(true);
-    try {
-      // const data = await payment({
-      //     "scn": "string",
-      //     "purchasedQty": stampCount,
-      //     "purchaseAmount": response?.amount,
-      //     "onlineCharge": 0,
-      //     "totalAmount": 0,
-      //     "referenceNo": "string",
-      //     "authorizationUrl": "string",
-      //     "isPublic": stampType === "public"
-      // })
-      setIsLoading(false);
-      closePaymentModal();
-    } catch (error) {
-      setError("");
-      closePaymentModal();
-    }
-  };
-
-  const onPaymentClose = () => {
-    setIsLoading(false);
-    setError("Payment was not successful");
-    console.log("Payment modal closed");
-    closePaymentModal();
-    // Perform actions after the modal is closed
-  };
-
   const handleResetFields = () => {
     setAmount(0);
     setStampCount("");
-  };
-
-  const fetchPersonalInfo = async () => {
-    try {
-      const data = await getPersonalInfo();
-      setPersonalInfo(data?.data);
-    } catch (error) {
-      setError("Failed to fetch info");
-      history.push("/signin");
-    }
   };
 
   const fetchData = async () => {
@@ -423,20 +355,20 @@ const Dashboard = () => {
     }
   };
 
-  // const handleBuyStamp = async () => {
-  //   try {
-  //     const data = await buyStamp({ quantity: stampCount, amount, isPublic: stampType === "public" });
-  //     if (data) {
-  //       window.open(data?.data?.authorizationUrl, "_blank");
-  //       hidePopup();
-  //       setIsLoading(false);
-  //       // showConfirmPaymentPopup();
-  //     }
-  //   } catch (error) {
-  //     setIsLoading(false);
-  //     setError("Failed to fetch dashboard data");
-  //   }
-  // };
+  const handleBuyStamp = async () => {
+    try {
+      const data = await buyStamp({ quantity: stampCount, amount, isPublic: stampType === "public" });
+      if (data) {
+        window.open(data?.data?.authorizationUrl, "_blank");
+        hidePopup();
+        setIsLoading(false);
+        // showConfirmPaymentPopup();
+      }
+    } catch (error) {
+      setIsLoading(false);
+      setError("Failed to fetch dashboard data");
+    }
+  };
 
   const isDisabled = () => {
     const numericValue = parseFloat(stampCount);
@@ -453,6 +385,30 @@ const Dashboard = () => {
 
     return formatter.format(amount);
   };
+
+  const startFetchingData = () => {
+    const interval = 10000; // 10 seconds
+    const duration = 120000; // 2 minutes (120,000 milliseconds)
+
+    intervalRef.current = setInterval(() => {
+      fetchData();
+      durationRef.current += interval;
+
+      if (durationRef.current >= duration || (dashboardData && dashboardData.availableQty !== undefined)) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          setIsLoading(false); // Stop loading after the interval ends
+        }
+      }
+    }, interval);
+  };
+
+  useEffect(() => {
+    if (dashboardData?.availableQty !== undefined && intervalRef.current) {
+      clearInterval(intervalRef.current);
+      setIsLoading(false); // Stop loading if the condition is met
+    }
+  }, [dashboardData?.availableQty]);
 
   useEffect(() => {
     if (error) {
@@ -513,8 +469,6 @@ const Dashboard = () => {
                       className={styles.button}
                       onClick={() => {
                         showPopup();
-                        fetchPersonalInfo();
-                        // window.open("https://www.google.com", "_blank");
                       }}
                     >
                       Buy Stamp
@@ -614,12 +568,9 @@ const Dashboard = () => {
               </div>
               <button
                 onClick={() => {
-                  // handleBuyStamp();
+                  handleBuyStamp();
                   setIsLoading(true);
-                  handleFlutterPayment({
-                    callback: onPaymentSuccess,
-                    onClose: onPaymentClose,
-                  });
+                  startFetchingData();
                 }}
                 disabled={isDisabled()}
               >

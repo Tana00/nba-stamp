@@ -331,8 +331,9 @@ const Dashboard = () => {
   const [amount, setAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [stampType, setStampType] = useState("private");
+  const initialAvailableQtyRef = useRef(null);
   const intervalRef = useRef(null);
-  const durationRef = useRef(0); // To keep track of elapsed time
+  const timeoutRef = useRef(0); // To keep track of elapsed time
 
   const [isPopupVisible, { setTrue: showPopup, setFalse: hidePopup }] = useBoolean(false);
   // const [isConfirmPaymentPopup, { setTrue: showConfirmPaymentPopup, setFalse: hideConfirmPaymentPopup }] =
@@ -349,6 +350,7 @@ const Dashboard = () => {
       setDashboardData(data?.data);
       // hideConfirmPaymentPopup();
       handleResetFields();
+      return data?.data?.availableQty;
     } catch (error) {
       setError("Failed to fetch dashboard data");
       history.push("/signin");
@@ -362,6 +364,7 @@ const Dashboard = () => {
         window.open(data?.data?.authorizationUrl, "_blank");
         hidePopup();
         setIsLoading(false);
+        startFetchingData();
         // showConfirmPaymentPopup();
       }
     } catch (error) {
@@ -387,28 +390,56 @@ const Dashboard = () => {
   };
 
   const startFetchingData = () => {
-    const interval = 10000; // 10 seconds
-    const duration = 120000; // 2 minutes (120,000 milliseconds)
+    setIsLoading(true);
 
-    intervalRef.current = setInterval(() => {
-      fetchData();
-      durationRef.current += interval;
+    // Store the initial availableQty when the button is clicked
+    if (dashboardData) {
+      initialAvailableQtyRef.current = dashboardData.availableQty;
+    }
 
-      if (durationRef.current >= duration || (dashboardData && dashboardData.availableQty !== undefined)) {
+    // Run fetchData immediately and compare
+    fetchData().then((newAvailableQty) => {
+      if (newAvailableQty !== initialAvailableQtyRef.current) {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
-          setIsLoading(false); // Stop loading after the interval ends
         }
+        setIsLoading(false);
+        return;
       }
-    }, interval);
+    });
+
+    // Set interval to run fetchData every 10 seconds
+    intervalRef.current = setInterval(async () => {
+      const newAvailableQty = await fetchData();
+      if (newAvailableQty !== initialAvailableQtyRef.current) {
+        // If availableQty has changed, clear the interval and stop loading
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+        setIsLoading(false);
+      }
+    }, 10000); // 10 seconds
+
+    // Stop the interval after 2 minutes if it hasn't already stopped
+    timeoutRef.current = setTimeout(() => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      setIsLoading(false);
+    }, 120000); // 2 minutes
   };
 
+  // Cleanup intervals and timeouts if the component unmounts
   useEffect(() => {
-    if (dashboardData?.availableQty !== undefined && intervalRef.current) {
-      clearInterval(intervalRef.current);
-      setIsLoading(false); // Stop loading if the condition is met
-    }
-  }, [dashboardData?.availableQty]);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (error) {
@@ -570,7 +601,6 @@ const Dashboard = () => {
                 onClick={() => {
                   handleBuyStamp();
                   setIsLoading(true);
-                  startFetchingData();
                 }}
                 disabled={isDisabled()}
               >

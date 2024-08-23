@@ -84,7 +84,7 @@ export const affixTextOnImage = async (base64, data) => {
 
         // Position for the first line
         const nameXPosition = canvas.width / 2;
-        const nameYPosition = canvas.height / 2 - 20;
+        const nameYPosition = canvas.height / 2 - 30;
 
         // Wrap the name text
         wrapText(ctx, data?.name, nameXPosition, nameYPosition, maxWidth, lineHeight);

@@ -367,7 +367,7 @@ const AffixSteps = () => {
 
   const downloadStatus = useAuthStore((state) => state.downloadStatus);
   // const downloadURL = useAuthStore((state) => state.downloadURL);
-  const downloadBlob = useAuthStore((state) => state.downloadBlob);
+  // const downloadBlob = useAuthStore((state) => state.downloadBlob);
   const setDownloadStatus = useAuthStore((state) => state.setDownloadStatus);
   const stampSignature = useAuthStore((state) => state.stampSignature);
   const setBase64Stamps = useAuthStore((state) => state.setBase64Stamps);
@@ -399,7 +399,7 @@ const AffixSteps = () => {
         const isPublicStamp = data?.isPublic;
 
         const base64 = await getImageBase64FromLocalPath(
-          isPublicStamp ? "../../assets/pink-stamp-1.png" : "../../assets/stamp1-1.png"
+          isPublicStamp ? "../../assets/pink-stamp.png" : "../../assets/green-stamp.png"
         );
         const finalImage = await affixTextOnImage(base64, stampData);
 
@@ -434,19 +434,19 @@ const AffixSteps = () => {
     await insertImageBottomRightFromLocalPath(pageCount);
   };
 
-  const handleOpenFile = () => {
-    if (downloadBlob) {
-      // Convert the blob to a Data URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result;
-        window.open(dataUrl, "_blank");
-      };
-      reader.readAsDataURL(downloadBlob);
-    } else {
-      console.log("No Blob available to oprn the file");
-    }
-  };
+  // const handleOpenFile = () => {
+  //   if (downloadBlob) {
+  //     // Convert the blob to a Data URL
+  //     const reader = new FileReader();
+  //     reader.onloadend = () => {
+  //       const dataUrl = reader.result;
+  //       window.open(dataUrl, "_blank");
+  //     };
+  //     reader.readAsDataURL(downloadBlob);
+  //   } else {
+  //     console.log("No Blob available to oprn the file");
+  //   }
+  // };
 
   useEffect(() => {
     // Define an async function inside the useEffect
@@ -716,7 +716,7 @@ const AffixSteps = () => {
                       <p>Stamp Affixed successfully!</p>
                       <p>You currently have {availableStamp} stamps left</p>
                       <div>
-                        <button onClick={handleOpenFile}>View Stamped Document in PDF</button>
+                        <button>View Stamped Document in PDF</button>
                         <button onClick={async () => await removePlaceholderImages()}>Clear Placeholders</button>
                       </div>
                     </div>

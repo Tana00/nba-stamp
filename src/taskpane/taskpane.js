@@ -358,37 +358,38 @@ export async function removePlaceholderImages() {
 }
 
 export const preparePDFDownload = async () => {
-  const { setDownloadStatus, setDownloadURL, setDownloadBlob } = useAuthStore.getState();
+  const { setDownloadStatus, setDownloadURL } = useAuthStore.getState();
   try {
     await Word.run(async (context) => {
       await replacePlaceholdersWithOriginals();
       await context.sync();
 
       return new Promise((resolve, reject) => {
-        Office.context.document.getFileAsync(Office.FileType.Pdf, { sliceSize: 4194304 /* 4MB */ }, (result) => {
+        Office.context.document.getFileAsync(Office.FileType.Pdf, { sliceSize: 4194304 /* 4MB */ }, async (result) => {
           if (result.status === Office.AsyncResultStatus.Succeeded) {
             const file = result.value;
             const sliceCount = file.sliceCount;
             let slicesReceived = 0;
             const docdataSlices = [];
-
             const getSlice = (index) => {
-              file.getSliceAsync(index, (sliceResult) => {
+              file.getSliceAsync(index, async (sliceResult) => {
                 if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
                   docdataSlices[index] = sliceResult.value.data;
                   slicesReceived++;
-
                   if (slicesReceived === sliceCount) {
                     const docdata = new Uint8Array(docdataSlices.flat());
                     const blob = new Blob([docdata], { type: "application/pdf" });
                     const url = URL.createObjectURL(blob);
                     setDownloadURL(url);
-                    setDownloadBlob(blob);
+                    // setDownloadBlob(blob);
                     resolve(url);
+                    await replaceOriginalsWithPlaceholders();
                   } else {
+                    // await replaceOriginalsWithPlaceholders();
                     getSlice(index + 1);
                   }
                 } else {
+                  await replaceOriginalsWithPlaceholders();
                   console.error(`Failed to get slice ${index}: ${sliceResult.error.message}`);
                   reject(`Failed to get slice ${index}: ${sliceResult.error.message}`);
                 }
@@ -398,18 +399,18 @@ export const preparePDFDownload = async () => {
             getSlice(0);
             setDownloadStatus(true);
           } else {
+            await replaceOriginalsWithPlaceholders();
             console.error(`Failed to get file: ${result.error.message}`);
             setDownloadStatus(false);
             reject(`Failed to get file: ${result.error.message}`);
           }
-          replaceOriginalsWithPlaceholders();
         });
       });
     });
   } catch (error) {
     console.error(`Error while downloading as PDF: ${error}`);
     setDownloadStatus(false);
-    replaceOriginalsWithPlaceholders();
+    await replaceOriginalsWithPlaceholders();
     throw error;
   }
 };

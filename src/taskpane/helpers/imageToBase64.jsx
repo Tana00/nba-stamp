@@ -30,6 +30,35 @@ export const getImageBase64FromSvgComponent = async (image) => {
   });
 };
 
+const drawCurvedText = (canvas, ctx, text, isPublic) => {
+  const centerX = canvas.width / 2 + 50;
+  const centerY = canvas.height / 2 + 30;
+  const radius = (canvas.width / 4) * 1.4;
+  const startAngle = Math.PI / 2.8;
+
+  ctx.font = "600 30px Inter";
+  ctx.fillStyle = isPublic ? "#E83D56" : "#2D6936";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "right";
+  const len = text.length;
+  const angleDecrement = -1;
+  const angleStep = (2 * Math.PI) / (len * 6);
+
+  for (let i = 0; i < len; i++) {
+    const char = text[i];
+    const angle = startAngle + i * angleDecrement * angleStep;
+
+    const xPos = centerX + Math.cos(angle) * radius;
+    const yPos = centerY + Math.sin(angle) * radius;
+
+    ctx.save();
+    ctx.translate(xPos, yPos);
+    ctx.rotate(angle - Math.PI / 2);
+    ctx.fillText(char, 0, 0);
+    ctx.restore();
+  }
+};
+
 export const affixTextOnImage = async (base64, data) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -46,13 +75,16 @@ export const affixTextOnImage = async (base64, data) => {
         // Draw the image onto the canvas
         ctx.drawImage(img, 0, 0);
 
+        // Now, draw the dynamic text on top of the image
+        drawCurvedText(canvas, ctx, `Valid Till ${data?.expiry}`, data?.isPublicStamp);
+
         // Set text properties
-        ctx.font = "60px Inter"; // Font size and type
+        ctx.font = "Bold 65px Inter"; // Font size and type
         ctx.fillStyle = "black"; // Text color
         ctx.textAlign = "center"; // Text alignment
 
         const maxWidth = canvas.width - 400; // Max width of the text, leaving some padding
-        const lineHeight = 80; // Height of each line
+        const lineHeight = 70; // Height of each line
 
         // Function to wrap text
         const wrapText = (context, text, x, y, maxWidth, lineHeight) => {
@@ -84,16 +116,16 @@ export const affixTextOnImage = async (base64, data) => {
 
         // Position for the first line
         const nameXPosition = canvas.width / 2;
-        const nameYPosition = canvas.height / 2 - 30;
+        const nameYPosition = canvas.height / 2 + 20;
 
         // Wrap the name text
         wrapText(ctx, data?.name, nameXPosition, nameYPosition, maxWidth, lineHeight);
 
         // Set text properties for the second line (SCN NO.)
-        ctx.font = "40px Inter"; // Bold font, 40px size
+        ctx.font = "Bold 36px Inter"; // Bold font, 36px size
 
         // Position for the second line
-        const scnYPosition = nameYPosition + 80;
+        const scnYPosition = nameYPosition + 50;
         ctx.fillText(`SCN NO. ${data?.number}`, canvas.width / 2, scnYPosition);
 
         // Generate the QR code as a data URL

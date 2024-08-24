@@ -9,6 +9,7 @@ import {
   removePlaceholderImages,
   preparePDFDownload,
   initiateDownload,
+  replaceOriginalsWithPlaceholders,
 } from "../taskpane";
 // import PinVerification from "./PinVerification";
 import Spinner from "./shared/Spinner";
@@ -385,23 +386,39 @@ const AffixSteps = () => {
         noOfPages: pageCount,
       });
       if (res?.succeeded) {
+        await removePlaceholderImages();
         setIsLoading(false);
         hideStep1Popup();
         setActive(2);
         const data = res?.data;
 
+        // Convert the epoch to milliseconds (JavaScript Date uses milliseconds)
+        const date = new Date(data?.expiryDate * 1000);
+
+        // Extract the month and year
+        const month = date.toLocaleString("default", { month: "long" });
+        const year = date.getFullYear();
+        const expiry = `${month} ${year}`;
+
+        const isPublicStamp = data?.isPublic;
+
         const stampData = {
           name: data?.firstName + " " + data?.lastName,
           number: data?.enrolmentNo?.replace("scn", ""),
           qrCode: data?.stampSignature,
+          expiry,
+          isPublicStamp,
         };
-
-        const isPublicStamp = data?.isPublic;
 
         const base64 = await getImageBase64FromLocalPath(
           isPublicStamp ? "../../assets/pink-stamp.png" : "../../assets/green-stamp.png"
         );
         const finalImage = await affixTextOnImage(base64, stampData);
+
+        // const footerBase64 = await getImageBase64FromLocalPath(
+        //   isPublicStamp ? "../../assets/footer-pink-stamp.png" : "../../assets/footer-green-stamp.png"
+        // );
+        // const footerFinalImage = await affixTextOnImage(footerBase64, stampData);
 
         setBase64Stamps({ main: finalImage, footer: finalImage });
       } else {
@@ -426,11 +443,41 @@ const AffixSteps = () => {
       setLoading(false);
     } catch (error) {
       setLoading(false);
-      // history.push('/')
+      await replaceOriginalsWithPlaceholders();
+      console.log(error);
+      setError(error?.response?.data?.message);
     }
   };
 
   const handleStampInsertion = async (pageCount) => {
+    // const date = new Date("1743379200" * 1000);
+
+    // // Extract the month and year
+    // const month = date.toLocaleString("default", { month: "long" });
+    // const year = date.getFullYear();
+    // const expiry = `${month} ${year}`;
+
+    // const isPublicStamp = false;
+
+    // const stampData = {
+    //   name: "Happiness Balogun",
+    //   number: "000081",
+    //   qrCode: "5484fbf6-cf1a-4428-b9da-ec4cfb2d25e0",
+    //   expiry,
+    //   isPublicStamp,
+    // };
+
+    // const base64 = await getImageBase64FromLocalPath(
+    //   isPublicStamp ? "../../assets/pink-stamp.png" : "../../assets/green-stamp.png"
+    // );
+    // const finalImage = await affixTextOnImage(base64, stampData);
+
+    // const footerBase64 = await getImageBase64FromLocalPath(
+    //   isPublicStamp ? "../../assets/footer-pink-stamp.png" : "../../assets/footer-green-stamp.png"
+    // );
+    // const footerFinalImage = await affixTextOnImage(footerBase64, stampData);
+
+    // setBase64Stamps({ main: finalImage, footer: footerFinalImage });
     await insertImageBottomRightFromLocalPath(pageCount);
   };
 
@@ -483,6 +530,8 @@ const AffixSteps = () => {
                     setDownloadStatus(null);
                     setConfirmationStep(1);
                     setError(null);
+                    // await removePlaceholderImages();
+                    // handleStampInsertion(pageCount);
                   }
                   if (step.id === 2 && active === 2) {
                     handleStampInsertion(pageCount);
@@ -706,6 +755,7 @@ const AffixSteps = () => {
                           }}
                         /> */}
                       </div>
+                      {error && <p className="error">{error}</p>}
                     </>
                   )}
 

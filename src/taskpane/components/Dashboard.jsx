@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@fluentui/react-components";
 import { useBoolean } from "@fluentui/react-hooks";
@@ -331,13 +331,10 @@ const Dashboard = () => {
   const [amount, setAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [stampType, setStampType] = useState("private");
-  const initialAvailableQtyRef = useRef(null);
-  const intervalRef = useRef(null);
-  const timeoutRef = useRef(0); // To keep track of elapsed time
 
   const [isPopupVisible, { setTrue: showPopup, setFalse: hidePopup }] = useBoolean(false);
-  // const [isConfirmPaymentPopup, { setTrue: showConfirmPaymentPopup, setFalse: hideConfirmPaymentPopup }] =
-  //   useBoolean(false);
+  const [isConfirmPaymentPopup, { setTrue: showConfirmPaymentPopup, setFalse: hideConfirmPaymentPopup }] =
+    useBoolean(false);
 
   const handleResetFields = () => {
     setAmount(0);
@@ -348,7 +345,7 @@ const Dashboard = () => {
     try {
       const data = await getDashboardData();
       setDashboardData(data?.data);
-      // hideConfirmPaymentPopup();
+      hideConfirmPaymentPopup();
       handleResetFields();
       return data?.data?.availableQty;
     } catch (error) {
@@ -361,11 +358,14 @@ const Dashboard = () => {
     try {
       const data = await buyStamp({ quantity: stampCount, amount, isPublic: stampType === "public" });
       if (data) {
-        window.open(data?.data?.authorizationUrl, "_blank");
+        if (data?.data?.authorizationUrl) {
+          window.open(data?.data?.authorizationUrl, "_blank");
+          showConfirmPaymentPopup();
+        } else {
+          setError(data?.message);
+        }
         hidePopup();
         setIsLoading(false);
-        startFetchingData();
-        // showConfirmPaymentPopup();
       }
     } catch (error) {
       setIsLoading(false);
@@ -388,58 +388,6 @@ const Dashboard = () => {
 
     return formatter.format(amount);
   };
-
-  const startFetchingData = () => {
-    setIsLoading(true);
-
-    // Store the initial availableQty when the button is clicked
-    if (dashboardData) {
-      initialAvailableQtyRef.current = dashboardData.availableQty;
-    }
-
-    // Run fetchData immediately and compare
-    fetchData().then((newAvailableQty) => {
-      if (newAvailableQty !== initialAvailableQtyRef.current) {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
-        setIsLoading(false);
-        return;
-      }
-    });
-
-    // Set interval to run fetchData every 10 seconds
-    intervalRef.current = setInterval(async () => {
-      const newAvailableQty = await fetchData();
-      if (newAvailableQty !== initialAvailableQtyRef.current) {
-        // If availableQty has changed, clear the interval and stop loading
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
-        setIsLoading(false);
-      }
-    }, 10000); // 10 seconds
-
-    // Stop the interval after 2 minutes if it hasn't already stopped
-    timeoutRef.current = setTimeout(() => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      setIsLoading(false);
-    }, 120000); // 2 minutes
-  };
-
-  // Cleanup intervals and timeouts if the component unmounts
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (error) {
@@ -613,13 +561,13 @@ const Dashboard = () => {
         />
       )}
 
-      {/* {isConfirmPaymentPopup && (
+      {isConfirmPaymentPopup && (
         <PopupModal
           hidePopup={hideConfirmPaymentPopup}
           content={
             <div className={styles.content}>
               <p className="question">Have you successfully made payment?</p>
-              <button
+              {/* <button
                 onClick={() => {
                   hideConfirmPaymentPopup();
                   handleResetFields();
@@ -627,7 +575,7 @@ const Dashboard = () => {
                 className="cancel_btn"
               >
                 <span>No</span>
-              </button>
+              </button> */}
 
               <button
                 onClick={() => {
@@ -635,13 +583,13 @@ const Dashboard = () => {
                 }}
                 className="confirm_btn"
               >
-                <span>Yes</span>
+                <span>Continue</span>
                 {isLoading && <div className={styles.loader}></div>}
               </button>
             </div>
           }
         />
-      )} */}
+      )}
     </>
   );
 };

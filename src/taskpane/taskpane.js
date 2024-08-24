@@ -26,6 +26,11 @@ export async function insertImageBottomRightFromLocalPath(totalPages) {
     const imageBase64 = await getImageBase64FromLocalPath(placeholderImagePath);
     const footerImageBase64 = await getImageBase64FromLocalPath(placeholderFooterImagePath);
 
+    // const { base64Stamps } = useAuthStore.getState();
+
+    // const imageBase64 = base64Stamps?.main;
+    // const footerImageBase64 = base64Stamps?.footer;
+
     await Word.run(async (context) => {
       // let body = context.document.body;
 
@@ -189,14 +194,15 @@ export async function replacePlaceholdersWithOriginals() {
 
           for (const picture of paragraphPictures.items) {
             if (picture.altTextTitle === "footer-placeholder") {
-              // Example condition
+              const originalWidth = picture.width;
+              const originalHeight = picture.height;
               const footerImg = picture.insertInlinePictureFromBase64(
                 originalFooterImageBase64,
                 Word.InsertLocation.replace
               );
               picture.altTextTitle = "footer-original"; // Update altText to distinguish it
-              footerImg.width = 40;
-              footerImg.height = 40;
+              footerImg.width = originalWidth;
+              footerImg.height = originalHeight;
             }
           }
         }
@@ -382,8 +388,12 @@ export const preparePDFDownload = async () => {
                     const url = URL.createObjectURL(blob);
                     setDownloadURL(url);
                     // setDownloadBlob(blob);
+
+                    // Close the file to free up memory
+                    file.closeAsync(() => {
+                      console.log("File closed successfully.");
+                    });
                     resolve(url);
-                    await replaceOriginalsWithPlaceholders();
                   } else {
                     // await replaceOriginalsWithPlaceholders();
                     getSlice(index + 1);
@@ -391,6 +401,9 @@ export const preparePDFDownload = async () => {
                 } else {
                   await replaceOriginalsWithPlaceholders();
                   console.error(`Failed to get slice ${index}: ${sliceResult.error.message}`);
+                  file.closeAsync(() => {
+                    console.log("File closed due to error.");
+                  });
                   reject(`Failed to get slice ${index}: ${sliceResult.error.message}`);
                 }
               });
@@ -422,5 +435,5 @@ export const initiateDownload = async (documentName) => {
   a.download = `${documentName}.pdf`;
   a.click();
   URL.revokeObjectURL(downloadURL);
-  // await removePlaceholderImages();
+  await replaceOriginalsWithPlaceholders();
 };
